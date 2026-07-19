@@ -12,7 +12,7 @@ namespace SmartFleet.Domain.Entites
         public DroneStatus Status { get; set; } =  DroneStatus.Available;
 
         public decimal TotalFlightHours { get; set; } = 0;
-        public DateTime? PurchaseDate { get; set; }
+        public DateOnly? PurchaseDate { get; set; }
 
         public Guid DroneModelId { get; set; }
         public DroneModel DroneModel { get; set; } = null!;

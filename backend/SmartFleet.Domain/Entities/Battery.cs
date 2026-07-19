@@ -24,7 +24,7 @@ namespace SmartFleet.Domain.Entites
         public int CycleCount { get; set; } = 0;
         public decimal HealthPercentage { get; set; } = 100;
         public BatteryStatus Status { get; set; } = BatteryStatus.Available;
-        public DateTime? PurchaseDate { get; set; }
-        public DateTime? LastInspectionDate { get; set; }
+        public DateOnly? PurchaseDate { get; set; }
+        public DateOnly? LastInspectionDate { get; set; }
     }
 }

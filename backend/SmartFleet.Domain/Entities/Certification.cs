@@ -12,8 +12,8 @@ namespace SmartFleet.Domain.Entities
 
         public string CertificationType { get; set; } = string.Empty; // p.sh. "EASA A2", "Part 107"
         public string IssuedBy { get; set; } = string.Empty;
-        public DateTime IssueDate { get; set; }
-        public DateTime ExpiryDate { get; set; }
+        public DateOnly IssueDate { get; set; }
+        public DateOnly ExpiryDate { get; set; }
         public string? DocumentUrl { get; set; }
     }
 }

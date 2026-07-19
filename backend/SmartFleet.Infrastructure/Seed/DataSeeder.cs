@@ -1,5 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using SmartFleet.Domain.Entites;
 using SmartFleet.Infrastructure.Identity;
+using SmartFleet.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -68,6 +72,24 @@ namespace SmartFleet.Infrastructure.Seed
                     Console.WriteLine($">>>   - {error.Code}: {error.Description}");
                 }
             }
+        }
+
+        public static async Task SeedDroneModelsAsync(ApplicationDbContext dbContext)
+        {
+            if (await dbContext.DroneModels.AnyAsync()) return;
+
+            dbContext.DroneModels.Add(new DroneModel
+            {
+                ManufacturerName = "DJI",
+                ModelName = "Matrice 350 RTK",
+                MaxFlightTimeMinutes = 55,
+                MaxPayloadKg = 2.7m,
+                MaxSpeedKmh = 82m,
+                CameraSpecs = "Zenmuse H20 compatible"
+            });
+
+            await dbContext.SaveChangesAsync();
+            Console.WriteLine(">>> SEEDER: DroneModel u krijua.");
         }
     }
 }

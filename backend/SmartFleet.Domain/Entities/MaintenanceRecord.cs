@@ -34,7 +34,7 @@ namespace SmartFleet.Domain.Entities
         public DroneComponent? Component { get; set; }
 
         public DateTime PerformedAt { get; set; }
-        public DateTime? NextRecommendedDate { get; set; }
+        public DateOnly? NextRecommendedDate { get; set; }
         public decimal? Cost { get; set; }
         public MaintenanceStatus Status { get; set; } = MaintenanceStatus.Scheduled;
     }

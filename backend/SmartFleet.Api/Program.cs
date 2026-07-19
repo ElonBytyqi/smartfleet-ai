@@ -1,86 +1,165 @@
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
 using SmartFleet.Infrastructure.Identity;
 using SmartFleet.Infrastructure.Persistence;
+using SmartFleet.Infrastructure.Seed;
 using SmartFleet.Infrastructure.Services;
 using System.Text;
-using SmartFleet.Infrastructure.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ======================================
-// 1. REGJISTRIMI I SHËRBIMEVE (para Build)
+// 1. REGJISTRIMI I SHËRBIMEVE
 // ======================================
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
 {
-    options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 8;
-    options.Password.RequireNonAlphanumeric = false;
-})
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
+builder.Services
+    .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireNonAlphanumeric = false;
+    })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IDroneService, DroneService>();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
+// ======================================
+// 2. JWT AUTHENTICATION
+// ======================================
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(
+                        builder.Configuration["Jwt:Key"]
+                        ?? throw new InvalidOperationException(
+                            "Jwt:Key mungon në appsettings.json.")))
+            };
+
+        options.Events = new JwtBearerEvents
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine(
+                    $">>> JWT FAILED: " +
+                    $"{context.Exception.GetType().Name}: " +
+                    $"{context.Exception.Message}");
+
+                return Task.CompletedTask;
+            },
+
+            OnChallenge = context =>
+            {
+                Console.WriteLine(
+                    $">>> JWT CHALLENGE: " +
+                    $"{context.Error}, " +
+                    $"{context.ErrorDescription}");
+
+                return Task.CompletedTask;
+            }
         };
     });
 
 builder.Services.AddAuthorization();
 
 // ======================================
-// 2. BUILD — pas kësaj, asnjë builder.Services më
+// 3. SWAGGER + JWT
 // ======================================
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition(
+        "Bearer",
+        new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description =
+                "Ngjit vetëm access token-in, pa fjalën Bearer."
+        });
+
+    options.AddSecurityRequirement(doc =>
+        new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecuritySchemeReference("Bearer", doc),
+                new List<string>()
+            }
+        });
+});
+
+// ======================================
+// 4. BUILD
+// ======================================
 
 var app = builder.Build();
 
+// ======================================
+// 5. SEED DATA
+// ======================================
+
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var roleManager = scope.ServiceProvider
+        .GetRequiredService<RoleManager<IdentityRole<Guid>>>();
 
+    var userManager = scope.ServiceProvider
+        .GetRequiredService<UserManager<ApplicationUser>>();
+
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<ApplicationDbContext>();
+
+    await DataSeeder.SeedDroneModelsAsync(dbContext);
     await DataSeeder.SeedRolesAsync(roleManager);
     await DataSeeder.SeedAdminUserAsync(userManager);
 }
 
-
-
 // ======================================
-// 3. MIDDLEWARE PIPELINE
+// 6. MIDDLEWARE PIPELINE
 // ======================================
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -93,3 +172,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
