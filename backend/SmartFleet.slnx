@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SmartFleet.Api/SmartFleet.Api.csproj" />
+  <Project Path="SmartFleet.Application/SmartFleet.Application.csproj" />
+  <Project Path="SmartFleet.Domain/SmartFleet.Domain.csproj" />
+  <Project Path="SmartFleet.Infrastructure/SmartFleet.Infrastructure.csproj" />
+</Solution>
