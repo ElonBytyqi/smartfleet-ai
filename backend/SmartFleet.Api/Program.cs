@@ -39,6 +39,7 @@ builder.Services
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IDroneService, DroneService>();
+builder.Services.AddScoped<IDroneModelService, DroneModelService>();
 
 // ======================================
 // 2. JWT AUTHENTICATION
