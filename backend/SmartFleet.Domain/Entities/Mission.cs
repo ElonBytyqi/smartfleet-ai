@@ -33,6 +33,7 @@ namespace SmartFleet.Domain.Entities
         public Battery? Battery { get; set; }
 
         public MissionStatus Status { get; set; } = MissionStatus.Planned;
+        public bool IsAutonomous { get; set; } = true;
 
         public DateTime ScheduledStart { get; set; }
         public DateTime? ScheduledEnd { get; set; }
