@@ -104,6 +104,7 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddAuthorization();
 
 // ======================================
 // 3. SWAGGER + JWT
@@ -132,6 +133,14 @@ builder.Services.AddSwaggerGen(options =>
                 new List<string>()
             }
         });
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
 });
 
 // ======================================
@@ -171,7 +180,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
