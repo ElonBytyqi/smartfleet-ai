@@ -9,29 +9,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 
-type Row = { lat: string; lng: string; alt: string; action: string };
+export type Row = { lat: string; lng: string; alt: string; action: string };
 
 export function WaypointEditor({
   missionId,
   waypoints,
   editable,
+    rows,
+  setRows,
 }: {
   missionId: string;
   waypoints: Waypoint[] | undefined;
   editable: boolean;
+    rows: Row[];
+  setRows: React.Dispatch<React.SetStateAction<Row[]>>;
 }) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
   // Vlerat fillestare nga props — pa useEffect
-  const [rows, setRows] = useState<Row[]>(() =>
-    (waypoints ?? []).map((w) => ({
-      lat: String(w.latitude),
-      lng: String(w.longitude),
-      alt: w.altitudeMeters !== null ? String(w.altitudeMeters) : "",
-      action: w.actionType ?? "Waypoint",
-    }))
-  );
+ 
 
   const save = useMutation({
     mutationFn: async () =>

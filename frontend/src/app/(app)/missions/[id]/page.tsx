@@ -4,6 +4,8 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { MissionMap } from "@/components/map/mission-map";
+import { WaypointEditor, type Row } from "@/components/waypoint-editor";
 import {
   Mission,
   Drone,
@@ -11,10 +13,10 @@ import {
   Pilot,
   Waypoint,
   ConflictCheck,
+  FlightZone,
 } from "@/lib/types";
 import { getApiError } from "@/lib/errors";
 import { StatusBadge } from "@/components/status-badge";
-import { WaypointEditor } from "@/components/waypoint-editor";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, ShieldCheck, MapPin } from "lucide-react";
+
 const actions: Record<string, { label: string; path: string; variant?: "outline" }[]> = {
   Planned: [
     { label: "Aprovo", path: "approve" },
@@ -39,6 +42,7 @@ const actions: Record<string, { label: string; path: string; variant?: "outline"
     { label: "Ndërprit", path: "abort", variant: "outline" },
   ],
 };
+
 export default function MissionDetailPage({
   params,
 }: {
@@ -46,13 +50,15 @@ export default function MissionDetailPage({
 }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
+
+  // ==== TE GJITHA HOOK-ET KETU, PARA CDO RETURN ====
   const [error, setError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<ConflictCheck | null>(null);
-
-  // Zgjedhjet e perdoruesit — null do te thote "perdor ate qe eshte caktuar"
   const [droneSel, setDroneSel] = useState<string | null>(null);
   const [batterySel, setBatterySel] = useState<string | null>(null);
   const [pilotSel, setPilotSel] = useState<string | null>(null);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [rowsKey, setRowsKey] = useState("");
 
   const { data: mission } = useQuery({
     queryKey: ["mission", id],
@@ -74,30 +80,23 @@ export default function MissionDetailPage({
     queryFn: async () => (await api.get<Pilot[]>("/pilots")).data,
   });
 
+  const { data: zones } = useQuery({
+    queryKey: ["flight-zones"],
+    queryFn: async () => (await api.get<FlightZone[]>("/flight-zones")).data,
+  });
+
   const { data: waypoints } = useQuery({
     queryKey: ["waypoints", id],
     queryFn: async () =>
       (await api.get<Waypoint[]>(`/missions/${id}/waypoints`)).data,
   });
 
-  // Vlera e shfaqur: zgjedhja e perdoruesit, ose ajo e ruajtur ne mision
-  const droneId = droneSel ?? mission?.droneId ?? "";
-  const batteryId = batterySel ?? mission?.batteryId ?? "";
-  const pilotId = pilotSel ?? mission?.pilotId ?? "";
-
-  function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["mission", id] });
-    queryClient.invalidateQueries({ queryKey: ["missions"] });
-    queryClient.invalidateQueries({ queryKey: ["drones"] });
-    queryClient.invalidateQueries({ queryKey: ["batteries"] });
-  }
-
   const assign = useMutation({
     mutationFn: async () =>
       api.post(`/missions/${id}/assign`, {
-        droneId,
-        batteryId,
-        pilotId: pilotId || null,
+        droneId: droneSel ?? mission?.droneId ?? "",
+        batteryId: batterySel ?? mission?.batteryId ?? "",
+        pilotId: (pilotSel ?? mission?.pilotId) || null,
       }),
     onSuccess: () => {
       refresh();
@@ -127,6 +126,28 @@ export default function MissionDetailPage({
     onError: (err) => setError(getApiError(err, "Veprimi nuk u krye.")),
   });
 
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ["mission", id] });
+    queryClient.invalidateQueries({ queryKey: ["missions"] });
+    queryClient.invalidateQueries({ queryKey: ["drones"] });
+    queryClient.invalidateQueries({ queryKey: ["batteries"] });
+  }
+
+  // Sinkronizim i rreshtave kur vijne waypoints te reja
+  const incomingKey = waypoints?.map((w) => w.id).join(",") ?? "";
+  if (waypoints && incomingKey !== rowsKey) {
+    setRowsKey(incomingKey);
+    setRows(
+      waypoints.map((w) => ({
+        lat: String(w.latitude),
+        lng: String(w.longitude),
+        alt: w.altitudeMeters !== null ? String(w.altitudeMeters) : "",
+        action: w.actionType ?? "Waypoint",
+      }))
+    );
+  }
+
+  // ==== RETURN I HERSHEM VETEM PAS HOOK-EVE ====
   if (!mission) {
     return (
       <p className="p-10 text-center text-[13px] text-muted-foreground">
@@ -135,7 +156,21 @@ export default function MissionDetailPage({
     );
   }
 
+  const droneId = droneSel ?? mission.droneId ?? "";
+  const batteryId = batterySel ?? mission.batteryId ?? "";
+  const pilotId = pilotSel ?? mission.pilotId ?? "";
+  const zone = zones?.find((z) => z.id === mission.flightZoneId);
   const editable = mission.status === "Planned";
+  const waypointsEditable =
+    mission.status === "Planned" || mission.status === "Approved";
+
+  const mapPoints = rows
+    .filter((r) => r.lat && r.lng)
+    .map((r) => ({
+      lat: Number(r.lat),
+      lng: Number(r.lng),
+      alt: r.alt ? Number(r.alt) : null,
+    }));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -150,9 +185,7 @@ export default function MissionDetailPage({
 
         <div className="flex items-start justify-between gap-6">
           <div>
-            <h1 className="font-heading text-xl font-semibold">
-              {mission.title}
-            </h1>
+            <h1 className="font-heading text-xl font-semibold">{mission.title}</h1>
             <p className="mt-1 font-mono text-[12px] text-muted-foreground">
               {mission.missionType} · {mission.flightZoneName} ·{" "}
               {mission.isAutonomous ? "autonom" : "me pilot"}
@@ -270,9 +303,7 @@ export default function MissionDetailPage({
               </div>
               <div className="flex justify-between border-b pb-2">
                 <dt className="text-muted-foreground">Bateria</dt>
-                <dd className="font-mono">
-                  {mission.batterySerialNumber ?? "—"}
-                </dd>
+                <dd className="font-mono">{mission.batterySerialNumber ?? "—"}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Piloti</dt>
@@ -292,10 +323,7 @@ export default function MissionDetailPage({
               {conflicts.hasConflicts ? (
                 <ul className="space-y-1">
                   {conflicts.conflicts.map((c, i) => (
-                    <li
-                      key={i}
-                      className="text-[12px] text-[var(--status-warning)]"
-                    >
+                    <li key={i} className="text-[12px] text-[var(--status-warning)]">
                       {c}
                     </li>
                   ))}
@@ -309,23 +337,59 @@ export default function MissionDetailPage({
           )}
         </section>
 
-        {/* Waypoints */}
-        <section className="bg-card p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
-            <h2 className="font-heading text-sm font-semibold">
-              Rruga e fluturimit
-            </h2>
+        {/* Rruga */}
+        <section className="flex flex-col bg-card">
+          <div className="flex items-center justify-between border-b px-6 py-3">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+              <h2 className="font-heading text-sm font-semibold">
+                Rruga e fluturimit
+              </h2>
+            </div>
+            {waypointsEditable && (
+              <span className="font-mono text-[11px] text-muted-foreground">
+                Kliko në hartë për të shtuar pikë
+              </span>
+            )}
           </div>
 
-          <WaypointEditor
-            key={waypoints?.length ?? "loading"}
-            missionId={id}
-            waypoints={waypoints}
-            editable={
-              mission.status === "Planned" || mission.status === "Approved"
-            }
-          />
+          <div className="h-72 shrink-0">
+            <MissionMap
+              zone={zone}
+              points={mapPoints}
+              editable={waypointsEditable}
+              onAdd={(lat, lng) =>
+                setRows((prev) => [
+                  ...prev,
+                  {
+                    lat: lat.toFixed(6),
+                    lng: lng.toFixed(6),
+                    alt: "100",
+                    action: "Waypoint",
+                  },
+                ])
+              }
+              onMove={(i, lat, lng) =>
+                setRows((prev) =>
+                  prev.map((r, idx) =>
+                    idx === i
+                      ? { ...r, lat: lat.toFixed(6), lng: lng.toFixed(6) }
+                      : r
+                  )
+                )
+              }
+            />
+          </div>
+
+          <div className="p-6">
+            <WaypointEditor
+              missionId={id}
+              waypoints={waypoints}
+              editable={waypointsEditable}
+              rows={rows}
+              setRows={setRows}
+            />
+          </div>
         </section>
       </div>
     </div>
