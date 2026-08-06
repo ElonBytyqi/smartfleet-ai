@@ -46,3 +46,56 @@ export interface FlightZone {
   maxAltitudeMeters: number | null;
   missionCount: number;
 }
+
+
+export interface Battery {
+  id: string;
+  serialNumber: string;
+  capacityMah: number;
+  cycleCount: number;
+  healthPercentage: number;
+  status: string;
+  droneId: string | null;
+  droneSerialNumber: string | null;
+  purchaseDate: string | null;
+  lastInspectionDate: string | null;
+}
+
+export interface Certification {
+  id: string;
+  pilotId: string;
+  pilotName: string | null;
+  certificationType: string;
+  issuedBy: string;
+  issueDate: string;
+  expiryDate: string;
+  documentUrl: string | null;
+  isExpired: boolean;
+  daysUntilExpiry: number;
+}
+
+export interface Pilot {
+  id: string;
+  userId: string;
+  fullName: string | null;
+  email: string | null;
+  licenseNumber: string | null;
+  totalFlightHours: number;
+  status: string;
+  certificationCount: number;
+  expiringCertificationCount: number;
+}
+
+export interface Waypoint {
+  id: string;
+  sequenceNumber: number;
+  latitude: number;
+  longitude: number;
+  altitudeMeters: number | null;
+  actionType: string | null;
+}
+
+export interface ConflictCheck {
+  hasConflicts: boolean;
+  conflicts: string[];
+}

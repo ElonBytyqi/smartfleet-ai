@@ -6,7 +6,7 @@ using SmartFleet.Application.Services;
 
 namespace SmartFleet.Api.Controllers
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/pilots")]
     [ApiController]
     public class PilotsController : ControllerBase
     {

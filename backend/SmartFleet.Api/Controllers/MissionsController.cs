@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace SmartFleet.Api.Controllers
 {
-    [Route("api/v1/[controller]")]
+    [Route("api/v1/missions")]
     [ApiController]
     public class MissionsController : ControllerBase
     {
