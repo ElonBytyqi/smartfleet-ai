@@ -149,3 +149,30 @@
     letter-spacing: -0.02em;
   }
 }
+
+
+/* Leaflet duhet te respektoje temen */
+.leaflet-container {
+  font-family: var(--font-sans);
+}
+.leaflet-tooltip {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  box-shadow: none;
+}
+.leaflet-tooltip::before {
+  display: none;
+}
+.leaflet-control-attribution {
+  background: var(--card) !important;
+  color: var(--muted-foreground) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-zoom a {
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
