@@ -44,9 +44,9 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col ">
+    <div className="flex flex-col gap-6">
       {/* Shiriti i operacioneve */}
-      <header className="flex items-center justify-between border-b bg-card px-6 py-3 ">
+      <header className="flex items-center justify-between rounded-lg border bg-card px-6 py-4">
         <div className="flex items-baseline gap-3">
           <h1 className="font-heading text-base font-semibold">Operacionet</h1>
           <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
@@ -78,9 +78,9 @@ export default function DashboardPage() {
       </header>
 
       {/* Metrikat */}
-      <div className="grid grid-cols-2 divide-x divide-y border-b sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {metrics.map((m) => (
-          <div key={m.label} className="bg-card px-6 py-5">
+          <div key={m.label} className="rounded-lg border bg-card px-5 py-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               {m.label}
             </p>
@@ -92,14 +92,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Rreshti i pare: alarmet + grafiku */}
-      <div className="grid gap-px bg-border lg:grid-cols-[1fr_1.4fr]">
-        <AttentionPanel />
-        <MissionChart missions={missions} />
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+        <div className="rounded-lg border bg-card">
+          <AttentionPanel />
+        </div>
+        <div className="rounded-lg border bg-card">
+          <MissionChart missions={missions} />
+        </div>
       </div>
 
       {/* Rreshti i dyte: misionet + baterite */}
-      <div className="grid flex-1 gap-px border-t bg-border lg:grid-cols-[1.6fr_1fr]">
-        <section className="bg-card p-6">
+      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        <section className="rounded-lg border bg-card p-6">
           <div className="mb-4 flex items-center gap-2">
             <Route className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
             <h2 className="font-heading text-sm font-semibold">
@@ -137,7 +141,9 @@ export default function DashboardPage() {
           )}
         </section>
 
-        <BatteryHealth />
+        <div className="rounded-lg border bg-card">
+          <BatteryHealth />
+        </div>
       </div>
     </div>
   );

@@ -155,18 +155,13 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider
-        .GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    var userManager = scope.ServiceProvider
-        .GetRequiredService<UserManager<ApplicationUser>>();
-
-    var dbContext = scope.ServiceProvider
-        .GetRequiredService<ApplicationDbContext>();
-
-    await DataSeeder.SeedDroneModelsAsync(dbContext);
     await DataSeeder.SeedRolesAsync(roleManager);
     await DataSeeder.SeedAdminUserAsync(userManager);
+    await DataSeeder.SeedFleetAsync(dbContext, userManager);
 }
 
 // ======================================

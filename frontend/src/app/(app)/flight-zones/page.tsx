@@ -8,19 +8,19 @@ import { ZoneMap } from "@/components/map/zone-map";
 import { MapPinned, ShieldAlert } from "lucide-react";
 
 export default function FlightZonesPage() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["flight-zones"],
-    queryFn: async () => (await api.get<FlightZone[]>("/flight-zones")).data,
-  });
+    const { data, isLoading } = useQuery({
+        queryKey: ["flight-zones"],
+        queryFn: async () => (await api.get<FlightZone[]>("/flight-zones")).data,
+    });
 
-  const zones = data ?? [];
-  const restricted = zones.filter((z) => z.isRestricted).length;
+    const zones = data ?? [];
+    const restricted = zones.filter((z) => z.isRestricted).length;
 
-  return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b bg-card px-6 py-3">
+   return (
+    <div className="flex flex-col gap-6">
+      <header className="flex items-center justify-between rounded-lg border bg-card px-6 py-4">
         <div className="flex items-baseline gap-3">
           <h1 className="font-heading text-base font-semibold">
             Zonat e fluturimit
@@ -38,9 +38,9 @@ export default function FlightZonesPage() {
         )}
       </header>
 
-      <div className="grid flex-1 overflow-hidden lg:grid-cols-[320px_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         {/* Lista */}
-        <aside className="overflow-y-auto border-r bg-card">
+        <aside className="max-h-[calc(100vh-220px)] overflow-y-auto rounded-lg border bg-card">
           {isLoading && (
             <p className="p-6 text-[13px] text-muted-foreground">
               Duke ngarkuar...
@@ -54,7 +54,7 @@ export default function FlightZonesPage() {
                 strokeWidth={1.5}
               />
               <p className="text-[13px] text-muted-foreground">
-                Ende s{"'"}ka zona. Krijo një zonë për të planifikuar misione.
+                Ende s&apos;ka zona të regjistruara.
               </p>
             </div>
           )}
@@ -89,7 +89,7 @@ export default function FlightZonesPage() {
         </aside>
 
         {/* Harta */}
-        <div className="relative">
+        <div className="h-[calc(100vh-220px)] overflow-hidden rounded-lg border bg-card">
           {zones.length > 0 && (
             <ZoneMap
               zones={zones}

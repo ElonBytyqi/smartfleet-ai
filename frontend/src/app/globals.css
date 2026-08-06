@@ -84,7 +84,7 @@
   --radius: 0.375rem;
 
   /* Shiriti anesor mbetet i erret ne te dyja temat — paneli i instrumenteve */
-  --sidebar: #0d1520;
+--sidebar: #0a1119;
   --sidebar-foreground: #c7d0db;
   --sidebar-primary: #b0257a;
   --sidebar-primary-foreground: #ffffff;
@@ -96,7 +96,8 @@
 
 .dark {
   --background: #0d1520;
-  --foreground: #e6eaf0;
+    --foreground: #f2f5f9;          /* ishte #e6eaf0 */
+
   --card: #161f2b;
   --card-foreground: #e6eaf0;
   --popover: #161f2b;
@@ -106,8 +107,8 @@
   --secondary: #1e2937;
   --secondary-foreground: #e6eaf0;
   --muted: #1e2937;
-  --muted-foreground: #8a97a8;
-  --accent: #1e2937;
+  --muted-foreground: #a3b0c2;    /* ishte #8a97a8 */
+    --accent: #1e2937;
   --accent-foreground: #e6eaf0;
   --destructive: #e05a4c;
   --border: #253141;
@@ -124,7 +125,7 @@
   --chart-4: #6b8fc7;
   --chart-5: #8a97a8;
 
-  --sidebar: #0d1520;
+--sidebar: #070c13;
   --sidebar-foreground: #c7d0db;
   --sidebar-primary: #c93a8c;
   --sidebar-primary-foreground: #ffffff;
@@ -150,7 +151,14 @@
   }
 }
 
-
+body {
+    @apply bg-background text-foreground;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 450;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
 /* Leaflet duhet te respektoje temen */
 .leaflet-container {
   font-family: var(--font-sans);
@@ -175,4 +183,9 @@
   background: var(--card) !important;
   color: var(--foreground) !important;
   border-color: var(--border) !important;
+}
+/* Teksti me mono te tabelat te mos duket i holle */
+.font-mono {
+  font-weight: 450;
+  letter-spacing: -0.01em;
 }

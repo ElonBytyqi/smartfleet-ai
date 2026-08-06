@@ -23,7 +23,6 @@ const statusFilters = [
   { key: "NeedsReplacement", label: "Për zëvendësim" },
 ];
 
-// Vlerat numerike te enum-it BatteryStatus ne backend
 const statusOptions = [
   { value: "0", label: "E lirë" },
   { value: "1", label: "Në përdorim" },
@@ -86,8 +85,8 @@ export default function BatteriesPage() {
   ).length;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b bg-card px-6 py-3">
+    <div className="flex flex-col gap-6">
+      <header className="flex items-center justify-between rounded-lg border bg-card px-6 py-4">
         <div className="flex items-baseline gap-3">
           <h1 className="font-heading text-base font-semibold">Bateritë</h1>
           <span className="font-mono text-[11px] text-muted-foreground">
@@ -102,7 +101,8 @@ export default function BatteriesPage() {
         )}
       </header>
 
-      <div className="flex gap-1 border-b bg-card px-6 py-2">
+      {/* Filtrat */}
+      <div className="flex gap-1 rounded-lg border bg-card px-4 py-3">
         {statusFilters.map((f) => (
           <button
             key={f.key}
@@ -119,14 +119,15 @@ export default function BatteriesPage() {
       </div>
 
       {error && (
-        <div className="border-b border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-6 py-2.5">
+        <div className="rounded-lg border border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-6 py-3">
           <p className="text-[13px] text-[var(--status-warning)]">{error}</p>
         </div>
       )}
 
-      <div className="flex-1 bg-card">
+      {/* Lista */}
+      <div className="overflow-hidden rounded-lg border bg-card">
         {isLoading && (
-          <p className="p-10 text-center text-[13px] text-muted-foreground">
+          <p className="p-12 text-center text-[13px] text-muted-foreground">
             Duke ngarkuar...
           </p>
         )}
@@ -148,7 +149,7 @@ export default function BatteriesPage() {
             <div key={b.id} className="flex items-center gap-6 px-6 py-4">
               {/* Identiteti dhe shendeti */}
               <div className="w-48 shrink-0">
-                <p className="font-mono text-[13px]">{b.serialNumber}</p>
+                <p className="font-mono text-[13px] font-medium">{b.serialNumber}</p>
                 <div className="mt-1.5 flex items-center gap-2">
                   <div className="h-1 w-20 overflow-hidden rounded-full bg-muted">
                     <div

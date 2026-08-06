@@ -68,9 +68,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (email === null) return null;
 
   return (
-    <div className="flex min-h-screen ">
-      <aside className="flex w-56 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
-        {/* Identiteti */}
+<div className="flex h-screen overflow-hidden">     
+<aside className="flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">        {/* Identiteti */}
         <div className="border-b border-sidebar-border px-5 py-5">
           <p className="font-heading text-[15px] font-semibold tracking-tight text-white">
             SmartFleet
@@ -137,7 +136,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-x-hidden">{children}</main>
-    </div>
+<main className="flex-1 overflow-y-auto">
+  <div className="mx-auto max-w-[1400px] p-8">{children}</div>
+</main>    </div>
   );
 }

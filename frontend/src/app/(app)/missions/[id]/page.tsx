@@ -173,7 +173,7 @@ export default function MissionDetailPage({
     }));
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-col gap-6">
       <header className="border-b bg-card px-6 py-4">
         <Link
           href="/missions"
