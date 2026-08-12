@@ -44,6 +44,7 @@ builder.Services.AddScoped<IBatteryService, BatteryService>();
 builder.Services.AddScoped<IPilotService, PilotService>();
 builder.Services.AddScoped<IFlightZoneService, FlightZoneService>();
 builder.Services.AddScoped<IMissionService, MissionService>();
+builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 
 
 // ======================================
