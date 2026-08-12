@@ -321,9 +321,23 @@ namespace SmartFleet.Infrastructure.Services
             if (!await _dbContext.MissionWaypoints.AnyAsync(w => w.MissionId == id))
                 return (false, "Mission has no waypoints defined.");
 
+            var checklist = await _dbContext.PreFlightChecklists
+       .FirstOrDefaultAsync(c => c.MissionId == id);
+
+            if (checklist == null)
+                return (false, "Pre-flight checklist must be completed before starting.");
+
+            if (!checklist.BatteryChecked || !checklist.PropellersChecked ||
+                !checklist.GpsSignalOk || !checklist.WeatherConditionsOk ||
+                !checklist.FirmwareUpToDate)
+                return (false, "All pre-flight checks must pass before starting.");
+
+
             mission.Status = MissionStatus.InProgress;
             mission.ActualStart = DateTime.UtcNow;
             mission.UpdatedAt = DateTime.UtcNow;
+
+
 
             // Burimet kalojne ne perdorim
             var drone = await _dbContext.Drones.FindAsync(mission.DroneId);

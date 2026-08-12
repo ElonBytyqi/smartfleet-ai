@@ -45,7 +45,7 @@ builder.Services.AddScoped<IPilotService, PilotService>();
 builder.Services.AddScoped<IFlightZoneService, FlightZoneService>();
 builder.Services.AddScoped<IMissionService, MissionService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
-
+builder.Services.AddScoped<IFlightRecordService, FlightRecordService>();
 
 // ======================================
 // 2. JWT AUTHENTICATION

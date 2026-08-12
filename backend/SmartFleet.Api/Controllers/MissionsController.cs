@@ -12,10 +12,13 @@ namespace SmartFleet.Api.Controllers
     public class MissionsController : ControllerBase
     {
         private readonly IMissionService _service;
+        private readonly IFlightRecordService _flightRecords;
 
-        public MissionsController(IMissionService service)
+
+        public MissionsController(IMissionService service, IFlightRecordService flightRecord)
         {
             _service = service;
+            _flightRecords = flightRecord;
         }
 
         // Merr Id-ne e userit te loguar nga claims e JWT-se
@@ -115,6 +118,47 @@ namespace SmartFleet.Api.Controllers
         {
             var (success, error) = await _service.ReplaceWaypointsAsync(id, waypoints);
             return success ? NoContent() : BadRequest(new { error });
+        }
+
+
+
+
+        [HttpGet("{id:guid}/checklist")]
+        public async Task<IActionResult> GetChecklist(Guid id)
+        {
+            var checklist = await _flightRecords.GetChecklistAsync(id);
+            return checklist == null
+                ? NotFound(new { error = "No checklist submitted yet." })
+                : Ok(checklist);
+        }
+
+        [HttpPost("{id:guid}/checklist")]
+        [Authorize(Roles = "Admin,FleetManager,Pilot")]
+        public async Task<IActionResult> SubmitChecklist(Guid id, SubmitChecklistRequest request)
+        {
+            var (success, error, checklistId) =
+                await _flightRecords.SubmitChecklistAsync(id, request, CurrentUserId);
+            return success ? Ok(new { id = checklistId }) : BadRequest(new { error });
+        }
+
+        // ===== Post-flight =====
+
+        [HttpGet("{id:guid}/report")]
+        public async Task<IActionResult> GetReport(Guid id)
+        {
+            var report = await _flightRecords.GetReportAsync(id);
+            return report == null
+                ? NotFound(new { error = "No report submitted yet." })
+                : Ok(report);
+        }
+
+        [HttpPost("{id:guid}/report")]
+        [Authorize(Roles = "Admin,FleetManager,Pilot")]
+        public async Task<IActionResult> SubmitReport(Guid id, SubmitReportRequest request)
+        {
+            var (success, error, reportId) =
+                await _flightRecords.SubmitReportAsync(id, request, CurrentUserId);
+            return success ? Ok(new { id = reportId }) : BadRequest(new { error });
         }
     }
 }
