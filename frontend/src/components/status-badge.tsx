@@ -13,7 +13,8 @@ const variants: Record<string, string> = {
   NeedsReplacement: "border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 text-[var(--status-warning)]",
   Aborted: "border-[var(--status-warning)]/20 bg-[var(--status-warning)]/10 text-[var(--status-warning)]",
   Planned: "border-border bg-muted text-muted-foreground",
-  Cancelled: "border-[var(--status-warning)]/80 bg-[var(--status-warning)]/10 text-[var(--status-warning)]",};
+  Cancelled: "border-[var(--status-warning)]/80 bg-[var(--status-warning)]/10 text-[var(--status-warning)]",
+Scheduled: "border-[#4a6fa5]/40 bg-[#4a6fa5]/12 text-[#6b8fc7]",};
 
 export function StatusBadge({ status }: { status: string }) {
   return (

@@ -99,3 +99,31 @@ export interface ConflictCheck {
   hasConflicts: boolean;
   conflicts: string[];
 }
+
+
+export interface MaintenanceRecord {
+  id: string;
+  droneId: string;
+  droneSerialNumber: string | null;
+  droneNickname: string | null;
+  technicianId: string;
+  technicianName: string | null;
+  maintenanceType: string;
+  description: string;
+  componentId: string | null;
+  componentType: string | null;
+  performedAt: string;
+  nextRecommendedDate: string | null;
+  cost: number | null;
+  status: string;
+}
+
+export interface DroneComponent {
+  id: string;
+  droneId: string;
+  componentType: string;
+  serialNumber: string | null;
+  installedAt: string;
+  expectedLifespanHours: number | null;
+  status: string;
+}

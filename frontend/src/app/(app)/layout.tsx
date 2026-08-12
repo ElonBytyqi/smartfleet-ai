@@ -15,6 +15,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  Wrench
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/batteries", label: "Bateritë", icon: BatteryMedium, endpoint: "/batteries" },
   { href: "/pilots", label: "Pilotët", icon: UserRound, endpoint: "/pilots" },
   { href: "/flight-zones", label: "Zonat", icon: MapPinned, endpoint: "/flight-zones" },
+  { href: "/maintenance", label: "Mirëmbajtja", icon: Wrench, endpoint: "/maintenance" },
 ];
 
 const emptySubscribe = () => () => {};
