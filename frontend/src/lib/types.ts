@@ -157,3 +157,13 @@ export interface FlightReport {
   aiAnalysisStatus: string;
   submittedAt: string;
 }
+export interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string | null;
+  isActive: boolean;
+  roles: string[];
+  hasPilotProfile: boolean;
+  createdAt: string;
+}
