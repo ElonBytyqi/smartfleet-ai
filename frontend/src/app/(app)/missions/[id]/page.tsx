@@ -27,6 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, ShieldCheck, MapPin } from "lucide-react";
+import { PreflightPanel } from "@/components/preflight-panel";
+import { FlightReportPanel } from "@/components/flight-report-panel";
+import { ClipboardCheck, FileText } from "lucide-react";
 
 const actions: Record<string, { label: string; path: string; variant?: "outline" }[]> = {
   Planned: [
@@ -391,6 +394,35 @@ export default function MissionDetailPage({
             />
           </div>
         </section>
+      </div>
+      {/* Checklist / Raport */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="rounded-lg border bg-card p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+            <h2 className="font-heading text-sm font-semibold">
+              Kontrolli para fluturimit
+            </h2>
+          </div>
+          <PreflightPanel
+            missionId={id}
+            editable={
+              mission.status === "Planned" || mission.status === "Approved"
+            }
+          />
+        </section>
+
+        {["Completed", "Aborted"].includes(mission.status) && (
+          <section className="rounded-lg border bg-card p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+              <h2 className="font-heading text-sm font-semibold">
+                Raporti pas fluturimit
+              </h2>
+            </div>
+            <FlightReportPanel missionId={id} />
+          </section>
+        )}
       </div>
     </div>
   );

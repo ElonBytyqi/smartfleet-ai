@@ -127,3 +127,33 @@ export interface DroneComponent {
   expectedLifespanHours: number | null;
   status: string;
 }
+
+export interface Checklist {
+  id: string;
+  missionId: string;
+  completedByPilotId: string;
+  completedByName: string | null;
+  batteryChecked: boolean;
+  propellersChecked: boolean;
+  gpsSignalOk: boolean;
+  weatherConditionsOk: boolean;
+  firmwareUpToDate: boolean;
+  notes: string | null;
+  completedAt: string;
+  allChecksPassed: boolean;
+}
+
+export interface FlightReport {
+  id: string;
+  missionId: string;
+  missionTitle: string | null;
+  submittedByPilotId: string;
+  submittedByName: string | null;
+  flightDurationMinutes: number;
+  batteryUsedPercentage: number | null;
+  issuesReported: string | null;
+  weatherConditions: string | null;
+  summary: string | null;
+  aiAnalysisStatus: string;
+  submittedAt: string;
+}
