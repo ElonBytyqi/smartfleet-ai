@@ -11,6 +11,8 @@ using SmartFleet.Infrastructure.Persistence;
 using SmartFleet.Infrastructure.Seed;
 using SmartFleet.Infrastructure.Services;
 using System.Text;
+using StackExchange.Redis;
+using SmartFleet.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+// MongoDB — singleton sepse klienti eshte thread-safe dhe menaxhon vete lidhjet
+builder.Services.AddSingleton<TelemetryDbContext>();
+
+// Redis
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]!));
+builder.Services.AddSingleton<ILiveStateService, LiveStateService>();
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
     {

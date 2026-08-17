@@ -22,5 +22,29 @@ services:
     depends_on:
       - postgres
 
+
+  mongo:
+    image: mongo:7
+    container_name: smartfleet-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: smartfleet
+      MONGO_INITDB_ROOT_PASSWORD: devpassword123
+      MONGO_INITDB_DATABASE: smartfleet_telemetry
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartfleet-redis
+    command: redis-server --requirepass devpassword123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
 volumes:
   pgdata:
+  mongodata:
+  redisdata:
