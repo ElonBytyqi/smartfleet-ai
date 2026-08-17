@@ -16,7 +16,8 @@ import {
   Sun,
   Moon,
   Wrench,
-  Users
+  Users,
+  Radio,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/flight-zones", label: "Zonat", icon: MapPinned, endpoint: "/flight-zones" },
   { href: "/maintenance", label: "Mirëmbajtja", icon: Wrench, endpoint: "/maintenance" },
   { href: "/users", label: "Përdoruesit", icon: Users, endpoint: "/users" },
+  { href: "/live", label: "Ndjekja live", icon: Radio, endpoint: null },
 ];
 
 const emptySubscribe = () => () => {};

@@ -4,15 +4,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using SmartFleet.Api.Hubs;
 using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
 using SmartFleet.Infrastructure.Identity;
 using SmartFleet.Infrastructure.Persistence;
 using SmartFleet.Infrastructure.Seed;
 using SmartFleet.Infrastructure.Services;
-using System.Text;
-using StackExchange.Redis;
 using SmartFleet.Infrastructure.Telemetry;
+using StackExchange.Redis;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +58,10 @@ builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IFlightRecordService, FlightRecordService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITelemetryService, TelemetryService>();
+
+
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ITelemetryBroadcaster, TelemetryBroadcaster>();
 // ======================================
 // 2. JWT AUTHENTICATION
 // ======================================
@@ -92,6 +97,16 @@ builder.Services
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    context.Token = accessToken;
+
+                return Task.CompletedTask;
+            },
             OnAuthenticationFailed = context =>
             {
                 Console.WriteLine(
@@ -151,7 +166,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
         policy.WithOrigins("http://localhost:3000")
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .AllowAnyMethod()
+              .AllowCredentials());
+
 });
 
 // ======================================
@@ -184,7 +201,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.MapHub<TelemetryHub>("/hubs/telemetry");
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();

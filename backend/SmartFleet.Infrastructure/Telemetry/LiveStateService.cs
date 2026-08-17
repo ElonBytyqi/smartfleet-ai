@@ -20,6 +20,8 @@ public class LiveStateService : ILiveStateService
     private const string KeyPrefix = "drone:live:";
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(10);
 
+
+
     public LiveStateService(IConnectionMultiplexer connection)
     {
         _redis = connection.GetDatabase();

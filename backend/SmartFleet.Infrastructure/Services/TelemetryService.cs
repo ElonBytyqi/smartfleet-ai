@@ -12,6 +12,8 @@ public class TelemetryService : ITelemetryService
     private readonly TelemetryDbContext _mongo;
     private readonly ILiveStateService _live;
     private readonly ApplicationDbContext _db;
+    private readonly ITelemetryBroadcaster _broadcaster;
+
 
     // Pragjet per alarmet
     private const double LowBattery = 25;
@@ -23,11 +25,14 @@ public class TelemetryService : ITelemetryService
     public TelemetryService(
         TelemetryDbContext mongo,
         ILiveStateService live,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        ITelemetryBroadcaster broadcaster)
     {
         _mongo = mongo;
         _live = live;
         _db = db;
+        _broadcaster = broadcaster;
+
     }
 
     public async Task<(bool Success, string? Error)> IngestAsync(IngestTelemetryRequest request)
@@ -67,6 +72,13 @@ public class TelemetryService : ITelemetryService
         // Historia ne Mongo, gjendja e fundit ne Redis
         await _mongo.TelemetryPoints.InsertOneAsync(point);
         await _live.SetLastPositionAsync(request.DroneId, point);
+
+
+        // Transmeto te klientet e lidhur
+        var live = await GetLiveDroneAsync(request.DroneId);
+        if (live != null)
+            await _broadcaster.BroadcastAsync(live);
+
 
         return (true, null);
     }
