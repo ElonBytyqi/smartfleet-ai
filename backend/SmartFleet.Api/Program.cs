@@ -56,6 +56,7 @@ builder.Services.AddScoped<IMissionService, MissionService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IFlightRecordService, FlightRecordService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITelemetryService, TelemetryService>();
 // ======================================
 // 2. JWT AUTHENTICATION
 // ======================================
