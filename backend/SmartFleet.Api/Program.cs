@@ -58,6 +58,7 @@ builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IFlightRecordService, FlightRecordService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITelemetryService, TelemetryService>();
+builder.Services.AddHttpClient<IAiService, AiService>();
 
 
 builder.Services.AddSignalR();
