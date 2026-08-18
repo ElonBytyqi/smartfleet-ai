@@ -22,7 +22,6 @@ services:
     depends_on:
       - postgres
 
-
   mongo:
     image: mongo:7
     container_name: smartfleet-mongo
@@ -35,6 +34,18 @@ services:
     volumes:
       - mongodata:/data/db
 
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: smartfleet-mongo-ui
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://smartfleet:devpassword123@mongo:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+
   redis:
     image: redis:7-alpine
     container_name: smartfleet-redis
@@ -44,7 +55,18 @@ services:
     volumes:
       - redisdata:/data
 
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: smartfleet-redis-ui
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight:/data
+    depends_on:
+      - redis
+
 volumes:
   pgdata:
   mongodata:
   redisdata:
+  redisinsight:
