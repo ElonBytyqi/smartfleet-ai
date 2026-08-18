@@ -18,6 +18,7 @@ import {
   Wrench,
   Users,
   Radio,
+  Brain,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -31,6 +32,7 @@ const navItems = [
   { href: "/maintenance", label: "Mirëmbajtja", icon: Wrench, endpoint: "/maintenance" },
   { href: "/users", label: "Përdoruesit", icon: Users, endpoint: "/users" },
   { href: "/live", label: "Ndjekja live", icon: Radio, endpoint: null },
+  { href: "/predictive", label: "Parashikimi", icon: Brain, endpoint: null },
 ];
 
 const emptySubscribe = () => () => {};

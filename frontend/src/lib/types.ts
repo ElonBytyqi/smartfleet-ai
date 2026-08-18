@@ -167,3 +167,25 @@ export interface User {
   hasPilotProfile: boolean;
   createdAt: string;
 }
+
+export interface RiskFactor {
+  name: string;
+  value: string;
+  score: number;
+  weight: number;
+}
+
+export interface DroneRisk {
+  droneId: string;
+  serialNumber: string;
+  nickname: string | null;
+  modelName: string | null;
+  riskScore: number;
+  riskLevel: string;
+  recommendedAction: string;
+  recommendedInspectionDays: number;
+  likelyComponent: string | null;
+  factors: RiskFactor[];
+  telemetryPoints: number;
+  assessedAt: string;
+}
