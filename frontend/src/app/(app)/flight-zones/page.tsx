@@ -1,42 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { FlightZone } from "@/lib/types";
-import { ZoneMap } from "@/components/map/zone-map";
 import { MapPinned, ShieldAlert } from "lucide-react";
+import { useFlightZones } from "@/lib/queries";
+import { TYPE_LABELS } from "@/lib/constants";
+import { ZoneMap } from "@/components/map/zone-map";
+import { PageHeader } from "@/components/page-header";
 
 export default function FlightZonesPage() {
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { data, isLoading } = useFlightZones();
 
-    const { data, isLoading } = useQuery({
-        queryKey: ["flight-zones"],
-        queryFn: async () => (await api.get<FlightZone[]>("/flight-zones")).data,
-    });
+  const zones = data ?? [];
+  const restricted = zones.filter((z) => z.isRestricted).length;
 
-    const zones = data ?? [];
-    const restricted = zones.filter((z) => z.isRestricted).length;
-
-   return (
+  return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center justify-between rounded-lg border bg-card px-6 py-4">
-        <div className="flex items-baseline gap-3">
-          <h1 className="font-heading text-base font-semibold">
-            Zonat e fluturimit
-          </h1>
-          <span className="font-mono text-[11px] text-muted-foreground">
-            {zones.length}
-          </span>
-        </div>
-
+      <PageHeader title="Zonat e fluturimit" count={zones.length}>
         {restricted > 0 && (
           <div className="flex items-center gap-2 text-[var(--status-caution)]">
             <ShieldAlert className="h-3.5 w-3.5" strokeWidth={2} />
             <span className="text-[13px]">{restricted} të kufizuara</span>
           </div>
         )}
-      </header>
+      </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         {/* Lista */}
@@ -64,7 +51,7 @@ export default function FlightZonesPage() {
               <button
                 key={z.id}
                 onClick={() => setSelectedId(z.id)}
-                className={`w-full px-5 py-4 text-left transition-colors ${
+                className={`w-full cursor-pointer px-5 py-4 text-left transition-colors ${
                   selectedId === z.id ? "bg-primary/8" : "hover:bg-muted/50"
                 }`}
               >
@@ -77,7 +64,7 @@ export default function FlightZonesPage() {
                   )}
                 </div>
                 <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                  {z.zoneType}
+                  {TYPE_LABELS[z.zoneType] ?? z.zoneType}
                   {z.maxAltitudeMeters && ` · max ${z.maxAltitudeMeters} m`}
                 </p>
                 <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
@@ -89,7 +76,7 @@ export default function FlightZonesPage() {
         </aside>
 
         {/* Harta */}
-        <div className="h-[calc(100vh-220px)] overflow-hidden rounded-lg border bg-card">
+        <div className="relative h-[calc(100vh-220px)] overflow-hidden rounded-lg border bg-card">
           {zones.length > 0 && (
             <ZoneMap
               zones={zones}
