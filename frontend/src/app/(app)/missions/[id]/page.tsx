@@ -6,6 +6,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { MissionMap } from "@/components/map/mission-map";
 import { WaypointEditor, type Row } from "@/components/waypoint-editor";
+
+
+import { MissionAnalysisPanel } from "@/components/mission-analysis-panel";
+import { Brain } from "lucide-react";
 import {
   Mission,
   Drone,
@@ -423,6 +427,19 @@ export default function MissionDetailPage({
             <FlightReportPanel missionId={id} />
           </section>
         )}
+
+
+              {["Completed", "Aborted", "InProgress"].includes(mission.status) && (
+        <section className="rounded-lg border bg-card p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Brain className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+            <h2 className="font-heading text-sm font-semibold">
+              Analiza e telemetrisë
+            </h2>
+          </div>
+          <MissionAnalysisPanel missionId={id} />
+        </section>
+      )}
       </div>
     </div>
   );

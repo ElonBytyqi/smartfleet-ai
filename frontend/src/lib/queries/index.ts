@@ -7,3 +7,4 @@ export * from "./zones";
 export * from "./maintenance";
 export * from "./users";
 export * from "./telemetry";
+export * from "./ai";

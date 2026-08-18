@@ -35,4 +35,21 @@ public class AiController : ControllerBase
         var (success, error, data) = await _ai.GetDroneRiskAsync(droneId, refresh);
         return success ? Ok(data) : StatusCode(503, new { error });
     }
+
+
+    [HttpGet("anomalies/missions/{missionId:guid}")]
+    public async Task<IActionResult> MissionAnomalies(Guid missionId, [FromQuery] bool refresh = false)
+    {
+        var (success, error, data) = await _ai.GetMissionAnalysisAsync(missionId, refresh);
+        return success ? Ok(data) : StatusCode(503, new { error });
+    }
+
+    [HttpGet("anomalies/recent")]
+    [Authorize(Roles = "Admin,FleetManager,MaintenanceTechnician")]
+    public async Task<IActionResult> RecentAnomalies([FromQuery] int days = 14)
+    {
+        var (success, error, data) = await _ai.GetRecentAnomaliesAsync(days);
+        return success ? Ok(data) : StatusCode(503, new { error });
+    }
+
 }

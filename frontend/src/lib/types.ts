@@ -189,3 +189,33 @@ export interface DroneRisk {
   telemetryPoints: number;
   assessedAt: string;
 }
+
+
+export interface Anomaly {
+  type: string;
+  severity: string;
+  title: string;
+  detail: string;
+  recommendation: string;
+  flightIndex: number | null;
+  flightTime: string | null;
+  occurrences: number | null;
+}
+
+export interface MissionAnalysis {
+  missionId: string;
+  missionTitle: string | null;
+  droneId: string | null;
+  droneSerialNumber: string | null;
+  droneNickname: string | null;
+  zoneName: string | null;
+  telemetryPoints: number;
+  flightCount: number;
+  durationMinutes: number | null;
+  batteryUsed: number | null;
+  maxDeviationMeters: number | null;
+  healthScore: number | null;
+  anomalies: Anomaly[];
+  summary: string;
+  analyzedAt: string;
+}

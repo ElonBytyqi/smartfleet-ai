@@ -13,6 +13,7 @@ public class AiService : IAiService
     private readonly IDatabase _cache;
     private readonly ILogger<AiService> _logger;
     private readonly TimeSpan _cacheTtl;
+ 
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -21,7 +22,8 @@ public class AiService : IAiService
 
     private const string FleetCacheKey = "ai:risk:fleet";
     private const string DroneCacheKeyPrefix = "ai:risk:drone:";
-
+    private const string AnomalyCacheKeyPrefix = "ai:anomaly:mission:";
+    private const string RecentAnomaliesCacheKey = "ai:anomaly:recent";
     public AiService(
         HttpClient http,
         IConnectionMultiplexer redis,
@@ -136,6 +138,88 @@ public class AiService : IAiService
         catch (TaskCanceledException)
         {
             return (false, "Shërbimi AI po merr shumë kohë.", null);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Cannot reach AI service");
+            return (false, "Shërbimi AI nuk është i disponueshëm.", null);
+        }
+    }
+    public async Task<(bool, string?, MissionAnalysis?)> GetMissionAnalysisAsync(
+    Guid missionId, bool refresh = false)
+    {
+        var key = $"{AnomalyCacheKeyPrefix}{missionId}";
+
+        if (!refresh)
+        {
+            var cached = await _cache.StringGetAsync(key);
+            if (cached.HasValue)
+            {
+                var data = JsonSerializer.Deserialize<MissionAnalysis>(
+                    cached.ToString(), JsonOptions);
+                if (data != null) return (true, null, data);
+            }
+        }
+
+        try
+        {
+            var response = await _http.GetAsync($"/anomalies/missions/{missionId}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return (false, "Misioni nuk u gjet.", null);
+
+            if (!response.IsSuccessStatusCode)
+                return (false, "Shërbimi AI nuk u përgjigj.", null);
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<MissionAnalysis>(json, JsonOptions);
+
+            if (result == null)
+                return (false, "Përgjigje e pavlefshme nga shërbimi AI.", null);
+
+            await _cache.StringSetAsync(key, json, _cacheTtl);
+            return (true, null, result);
+        }
+        catch (TaskCanceledException)
+        {
+            return (false, "Analiza po merr shumë kohë.", null);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Cannot reach AI service");
+            return (false, "Shërbimi AI nuk është i disponueshëm.", null);
+        }
+    }
+
+    public async Task<(bool, string?, List<MissionAnalysis>?)> GetRecentAnomaliesAsync(int days = 14)
+    {
+        var cached = await _cache.StringGetAsync(RecentAnomaliesCacheKey);
+        if (cached.HasValue)
+        {
+            var data = JsonSerializer.Deserialize<List<MissionAnalysis>>(
+                cached.ToString(), JsonOptions);
+            if (data != null) return (true, null, data);
+        }
+
+        try
+        {
+            var response = await _http.GetAsync($"/anomalies/recent?days={days}");
+
+            if (!response.IsSuccessStatusCode)
+                return (false, "Shërbimi AI nuk u përgjigj.", null);
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<List<MissionAnalysis>>(json, JsonOptions);
+
+            if (result == null)
+                return (false, "Përgjigje e pavlefshme nga shërbimi AI.", null);
+
+            await _cache.StringSetAsync(RecentAnomaliesCacheKey, json, _cacheTtl);
+            return (true, null, result);
+        }
+        catch (TaskCanceledException)
+        {
+            return (false, "Analiza po merr shumë kohë.", null);
         }
         catch (HttpRequestException ex)
         {

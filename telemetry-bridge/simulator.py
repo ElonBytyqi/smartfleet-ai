@@ -76,7 +76,7 @@ class FlightSimulator:
                 return False   # rruga mbaroi
 
         # Bateria bie ~0.06% për sekondë, me luhatje të vogël
-        self.battery = max(0.0, self.battery - 0.06 * INTERVAL * random.uniform(0.8, 1.2))
+        self.battery = max(0.0, self.battery - 0.035 * INTERVAL * random.uniform(0.8, 1.2))   
         return True
 
     def run(self):

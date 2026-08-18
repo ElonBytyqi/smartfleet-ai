@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
+import anomaly
 import predictive
 
 load_dotenv()
@@ -68,3 +68,19 @@ def drone_risk(drone_id: str):
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
+
+
+
+@app.get("/anomalies/missions/{mission_id}", dependencies=[Depends(verify_key)])
+def mission_anomalies(mission_id: str):
+    """Analizon telemetrinë e një misioni."""
+    result = anomaly.analyze_mission(mission_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/anomalies/recent", dependencies=[Depends(verify_key)])
+def recent(days: int = 14, limit: int = 50):
+    """Misionet e fundit me anomali, të renditura sipas shëndetit."""
+    return anomaly.recent_anomalies(days, limit)
