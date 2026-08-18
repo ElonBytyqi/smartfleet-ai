@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { LiveDrone } from "@/lib/use-telemetry";
 import { FlightZone } from "@/lib/types";
+import type { TrackLine, PlannedRoute } from "./live-map-inner";
 
 const Inner = dynamic(() => import("./live-map-inner"), {
   ssr: false,
@@ -18,9 +19,13 @@ const Inner = dynamic(() => import("./live-map-inner"), {
 export function LiveMap(props: {
   drones: LiveDrone[];
   zones: FlightZone[];
+  tracks: TrackLine[];
+  routes: PlannedRoute[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   followTarget: [number, number] | null;
 }) {
   return <Inner {...props} />;
 }
+
+export type { TrackLine, PlannedRoute };
