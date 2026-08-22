@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import anomaly
 import predictive
-
+import report_analysis
 load_dotenv()
 
 API_KEY = os.getenv("API_KEY", "dev-key")
@@ -84,3 +84,18 @@ def mission_anomalies(mission_id: str):
 def recent(days: int = 14, limit: int = 50):
     """Misionet e fundit me anomali, të renditura sipas shëndetit."""
     return anomaly.recent_anomalies(days, limit)
+
+
+@app.get("/reports/{report_id}/analysis", dependencies=[Depends(verify_key)])
+def report_analysis_endpoint(report_id: str):
+    """Analizon një raport pas fluturimit."""
+    result = report_analysis.analyze_report(report_id)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.post("/reports/analyze-pending", dependencies=[Depends(verify_key)])
+def analyze_pending_reports(limit: int = 50):
+    """Analizon të gjitha raportet me status Pending."""
+    return report_analysis.analyze_pending(limit)

@@ -24,6 +24,8 @@ public class AiService : IAiService
     private const string DroneCacheKeyPrefix = "ai:risk:drone:";
     private const string AnomalyCacheKeyPrefix = "ai:anomaly:mission:";
     private const string RecentAnomaliesCacheKey = "ai:anomaly:recent";
+
+    private const string ReportCacheKeyPrefix = "ai:report:";
     public AiService(
         HttpClient http,
         IConnectionMultiplexer redis,
@@ -227,4 +229,79 @@ public class AiService : IAiService
             return (false, "Shërbimi AI nuk është i disponueshëm.", null);
         }
     }
+
+
+    public async Task<(bool, string?, ReportAnalysis?)> GetReportAnalysisAsync(Guid reportId)
+    {
+        var key = $"{ReportCacheKeyPrefix}{reportId}";
+
+        var cached = await _cache.StringGetAsync(key);
+        if (cached.HasValue)
+        {
+            var data = JsonSerializer.Deserialize<ReportAnalysis>(
+                cached.ToString(), JsonOptions);
+            if (data != null) return (true, null, data);
+        }
+
+        try
+        {
+            var response = await _http.GetAsync($"/reports/{reportId}/analysis");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return (false, "Raporti nuk u gjet.", null);
+
+            if (!response.IsSuccessStatusCode)
+                return (false, "Shërbimi AI nuk u përgjigj.", null);
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ReportAnalysis>(json, JsonOptions);
+
+            if (result == null)
+                return (false, "Përgjigje e pavlefshme nga shërbimi AI.", null);
+
+            // Analiza e nje raporti s'ndryshon — cache me i gjate
+            await _cache.StringSetAsync(key, json, TimeSpan.FromHours(24));
+            return (true, null, result);
+        }
+        catch (TaskCanceledException)
+        {
+            return (false, "Analiza po merr shumë kohë.", null);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Cannot reach AI service");
+            return (false, "Shërbimi AI nuk është i disponueshëm.", null);
+        }
+    }
+
+    public async Task<(bool, string?, PendingAnalysisResult?)> AnalyzePendingReportsAsync()
+    {
+        try
+        {
+            var response = await _http.PostAsync("/reports/analyze-pending", null);
+
+            if (!response.IsSuccessStatusCode)
+                return (false, "Shërbimi AI nuk u përgjigj.", null);
+
+            var json = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<PendingAnalysisResult>(json, JsonOptions);
+
+            if (result == null)
+                return (false, "Përgjigje e pavlefshme nga shërbimi AI.", null);
+
+            return (true, null, result);
+        }
+        catch (TaskCanceledException)
+        {
+            return (false, "Analiza po merr shumë kohë.", null);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Cannot reach AI service");
+            return (false, "Shërbimi AI nuk është i disponueshëm.", null);
+        }
+    }
+
+
+
 }

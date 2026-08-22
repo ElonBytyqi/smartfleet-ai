@@ -52,4 +52,20 @@ public class AiController : ControllerBase
         return success ? Ok(data) : StatusCode(503, new { error });
     }
 
+
+    [HttpGet("reports/{reportId:guid}/analysis")]
+    public async Task<IActionResult> ReportAnalysis(Guid reportId)
+    {
+        var (success, error, data) = await _ai.GetReportAnalysisAsync(reportId);
+        return success ? Ok(data) : StatusCode(503, new { error });
+    }
+
+    [HttpPost("reports/analyze-pending")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> AnalyzePending()
+    {
+        var (success, error, data) = await _ai.AnalyzePendingReportsAsync();
+        return success ? Ok(data) : StatusCode(503, new { error });
+    }
+
 }

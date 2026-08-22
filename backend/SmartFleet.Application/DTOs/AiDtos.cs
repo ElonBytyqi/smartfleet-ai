@@ -47,3 +47,35 @@ public record MissionAnalysis(
     List<Anomaly> Anomalies,
     string Summary,
     DateTime AnalyzedAt);
+
+public record ReportIssue(
+    string Category,
+    string Label,
+    string Severity,
+    List<string> MatchedTerms,
+    string Recommendation);
+
+public record ReportObservation(
+    string Type,
+    string Severity,
+    string Text,
+    string Recommendation);
+
+public record ReportAnalysis(
+    Guid ReportId,
+    Guid MissionId,
+    string? MissionTitle,
+    string? DroneSerialNumber,
+    string? DroneNickname,
+    string? OriginalText,
+    string OverallSeverity,
+    bool NeedsMaintenance,
+    List<ReportIssue> Issues,
+    List<ReportObservation> Observations,
+    string Summary,
+    DateTime AnalyzedAt);
+
+public record PendingAnalysisResult(
+    int Processed,
+    int WithFindings,
+    List<ReportAnalysis> Results);

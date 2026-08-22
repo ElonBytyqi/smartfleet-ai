@@ -8,7 +8,7 @@ import { getApiError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles } from "lucide-react";
+import { ReportAnalysisPanel } from "@/components/report-analysis-panel";
 
 export function FlightReportPanel({ missionId }: { missionId: string }) {
   const queryClient = useQueryClient();
@@ -91,17 +91,13 @@ export function FlightReportPanel({ missionId }: { missionId: string }) {
             </p>
           </div>
         )}
+         {console.log("Report ID:", report.id)}
+<ReportAnalysisPanel reportId={report.id} />
 
-        <div className="flex items-center justify-between border-t pt-3">
-          <p className="font-mono text-[11px] text-muted-foreground">
-            {report.submittedByName ?? "Pilot"} ·{" "}
-            {report.submittedAt.slice(0, 16).replace("T", " ")}Z
-          </p>
-          <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            <Sparkles className="h-3 w-3" strokeWidth={2} />
-            AI: {report.aiAnalysisStatus}
-          </span>
-        </div>
+        <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
+          {report.submittedByName ?? "Pilot"} ·{" "}
+          {report.submittedAt.slice(0, 16).replace("T", " ")}Z
+        </p>
       </div>
     );
   }

@@ -219,3 +219,33 @@ export interface MissionAnalysis {
   summary: string;
   analyzedAt: string;
 }
+
+export interface ReportIssue {
+  category: string;
+  label: string;
+  severity: string;
+  matchedTerms: string[];
+  recommendation: string;
+}
+
+export interface ReportObservation {
+  type: string;
+  severity: string;
+  text: string;
+  recommendation: string;
+}
+
+export interface ReportAnalysis {
+  reportId: string;
+  missionId: string;
+  missionTitle: string | null;
+  droneSerialNumber: string | null;
+  droneNickname: string | null;
+  originalText: string | null;
+  overallSeverity: string;
+  needsMaintenance: boolean;
+  issues: ReportIssue[];
+  observations: ReportObservation[];
+  summary: string;
+  analyzedAt: string;
+}

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { DroneRisk, MissionAnalysis } from "@/lib/types";
+import { DroneRisk, MissionAnalysis,ReportAnalysis  } from "@/lib/types";
 
 
 
@@ -52,6 +52,18 @@ export function useRecentAnomalies(days = 14) {
     queryFn: async () =>
       (await api.get<MissionAnalysis[]>(`/ai/anomalies/recent?days=${days}`)).data,
     staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+}
+
+
+export function useReportAnalysis(reportId: string | null) {
+  return useQuery({
+    queryKey: ["ai", "report", reportId],
+    queryFn: async () =>
+      (await api.get<ReportAnalysis>(`/ai/reports/${reportId}/analysis`)).data,
+    enabled: !!reportId,
+    staleTime: 60 * 60 * 1000,
     retry: false,
   });
 }
