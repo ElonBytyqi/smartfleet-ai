@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
+import { tokens } from "@/lib/api";
+
 
 export interface LiveDrone {
   droneId: string;
@@ -42,7 +44,7 @@ export function useTelemetry(initial: LiveDrone[] = []) {
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, {
-        accessTokenFactory: () => localStorage.getItem("accessToken") ?? "",
+        accessTokenFactory: () => tokens.access ?? "",
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000])
       .configureLogging(signalR.LogLevel.Warning)

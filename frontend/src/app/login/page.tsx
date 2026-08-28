@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api , tokens  } from "@/lib/api";
 import { AuthResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,13 +22,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data } = await api.post<AuthResponse>("/auth/login", {
+       const { data } = await api.post<AuthResponse>("/auth/login", {
         email,
         password,
       });
 
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      tokens.save(data);
       localStorage.setItem("userEmail", data.email);
       localStorage.setItem("userRoles", JSON.stringify(data.roles));
 

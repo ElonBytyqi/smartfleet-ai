@@ -20,7 +20,7 @@ import {
   Radio,
   Brain,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api , tokens } from "@/lib/api";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, endpoint: null },
@@ -68,8 +68,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }
 
+
   function logout() {
-    localStorage.clear();
+    tokens.clear();
     router.replace("/login");
   }
 

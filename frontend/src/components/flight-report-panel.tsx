@@ -91,8 +91,8 @@ export function FlightReportPanel({ missionId }: { missionId: string }) {
             </p>
           </div>
         )}
-         {console.log("Report ID:", report.id)}
-<ReportAnalysisPanel reportId={report.id} />
+          {/* {console.log("Report ID:", report.id)} */}
+        < ReportAnalysisPanel reportId={report.id} />
 
         <p className="border-t pt-3 font-mono text-[11px] text-muted-foreground">
           {report.submittedByName ?? "Pilot"} ·{" "}
