@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 import { tokens } from "@/lib/api";
 
-
 export interface LiveDrone {
   droneId: string;
   serialNumber: string;
@@ -31,26 +30,39 @@ const HUB_URL =
   "/hubs/telemetry";
 
 export function useTelemetry(initial: LiveDrone[] = []) {
-  // Mbajme nje harte droneId -> gjendja e fundit
   const [drones, setDrones] = useState<Map<string, LiveDrone>>(
     () => new Map(initial.map((d) => [d.droneId, d]))
   );
+
   const [connected, setConnected] = useState(false);
+
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
+    const token = tokens.access;
+
+    if (!token) {
+      console.warn("SignalR: access token mungon");
+      return;
+    }
+
+    let disposed = false;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, {
         accessTokenFactory: () => tokens.access ?? "",
+        transport: signalR.HttpTransportType.WebSockets,
+        skipNegotiation: true,
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000])
-      .configureLogging(signalR.LogLevel.Warning)
+      .configureLogging(signalR.LogLevel.Information)
       .build();
 
+    connectionRef.current = connection;
+
     connection.on("TelemetryUpdate", (data: LiveDrone) => {
+      if (disposed) return;
+
       setDrones((prev) => {
         const next = new Map(prev);
         next.set(data.droneId, data);
@@ -58,19 +70,63 @@ export function useTelemetry(initial: LiveDrone[] = []) {
       });
     });
 
-    connection.onreconnected(() => setConnected(true));
-    connection.onreconnecting(() => setConnected(false));
-    connection.onclose(() => setConnected(false));
+    connection.onreconnecting(() => {
+      if (!disposed) {
+        setConnected(false);
+      }
+    });
 
-    connection
-      .start()
-      .then(() => setConnected(true))
-      .catch((err) => console.error("SignalR:", err));
+    connection.onreconnected(() => {
+      if (!disposed) {
+        setConnected(true);
+      }
+    });
 
-    connectionRef.current = connection;
+    connection.onclose(() => {
+      if (!disposed) {
+        setConnected(false);
+      }
+    });
+
+    const startConnection = async () => {
+      try {
+        if (
+          connection.state ===
+          signalR.HubConnectionState.Disconnected
+        ) {
+          await connection.start();
+
+          if (!disposed) {
+            setConnected(true);
+            console.log("SignalR connected");
+          }
+        }
+      } catch (err) {
+        if (!disposed) {
+          console.error("SignalR:", err);
+        }
+      }
+    };
+
+    startConnection();
 
     return () => {
-      connection.stop();
+      disposed = true;
+
+      connection.off("TelemetryUpdate");
+
+      if (
+        connection.state ===
+        signalR.HubConnectionState.Connected ||
+        connection.state ===
+        signalR.HubConnectionState.Reconnecting
+      ) {
+        connection.stop().catch((err) => {
+          console.error("SignalR stop error:", err);
+        });
+      }
+
+      connectionRef.current = null;
     };
   }, []);
 

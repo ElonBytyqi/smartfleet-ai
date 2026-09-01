@@ -14,7 +14,6 @@ public class TelemetryService : ITelemetryService
     private readonly ApplicationDbContext _db;
     private readonly ITelemetryBroadcaster _broadcaster;
 
-
     // Pragjet per alarmet
     private const double LowBattery = 25;
     private const double CriticalBattery = 15;
@@ -32,8 +31,81 @@ public class TelemetryService : ITelemetryService
         _live = live;
         _db = db;
         _broadcaster = broadcaster;
-
     }
+
+    // ===== Geofence =====
+
+    // Algoritmi ray-casting: numeron sa here nje vije horizontale
+    // nga pika kalon anet e poligonit. Numer tek = brenda.
+    private static bool IsInsidePolygon(double lat, double lng, List<(double Lng, double Lat)> polygon)
+    {
+        if (polygon.Count < 3) return true;   // pa poligon te vlefshem, mos alarmo
+
+        var inside = false;
+
+        for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+        {
+            var (xi, yi) = polygon[i];
+            var (xj, yj) = polygon[j];
+
+            var intersects =
+                (yi > lat) != (yj > lat) &&
+                lng < (xj - xi) * (lat - yi) / (yj - yi) + xi;
+
+            if (intersects) inside = !inside;
+        }
+
+        return inside;
+    }
+
+    private static List<(double Lng, double Lat)> ParsePolygon(string geoJson)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(geoJson);
+            var ring = doc.RootElement.GetProperty("coordinates")[0];
+
+            var points = new List<(double, double)>();
+            foreach (var coord in ring.EnumerateArray())
+                points.Add((coord[0].GetDouble(), coord[1].GetDouble()));
+
+            return points;
+        }
+        catch
+        {
+            return new List<(double, double)>();
+        }
+    }
+
+    // Kontrollon nese droni eshte brenda zones se misionit te tij
+    private async Task<string?> CheckGeofenceAsync(TelemetryPoint p)
+    {
+        if (p.MissionId == null) return null;
+
+        var zone = await _db.Missions
+            .Where(m => m.Id == p.MissionId.Value)
+            .Select(m => new
+            {
+                m.FlightZone.Name,
+                m.FlightZone.PolygonGeoJson,
+                m.FlightZone.MaxAltitudeMeters,
+            })
+            .FirstOrDefaultAsync();
+
+        if (zone == null) return null;
+
+        var polygon = ParsePolygon(zone.PolygonGeoJson);
+
+        if (!IsInsidePolygon(p.Latitude, p.Longitude, polygon))
+            return $"Jashtë zonës '{zone.Name}'";
+
+        if (zone.MaxAltitudeMeters.HasValue && p.AltitudeMeters > zone.MaxAltitudeMeters.Value)
+            return $"Mbi kufirin e zonës: {p.AltitudeMeters:F0} m (max {zone.MaxAltitudeMeters} m)";
+
+        return null;
+    }
+
+    // ===== Ingest =====
 
     public async Task<(bool Success, string? Error)> IngestAsync(IngestTelemetryRequest request)
     {
@@ -73,15 +145,15 @@ public class TelemetryService : ITelemetryService
         await _mongo.TelemetryPoints.InsertOneAsync(point);
         await _live.SetLastPositionAsync(request.DroneId, point);
 
-
         // Transmeto te klientet e lidhur
         var live = await GetLiveDroneAsync(request.DroneId);
         if (live != null)
             await _broadcaster.BroadcastAsync(live);
 
-
         return (true, null);
     }
+
+    // ===== Gjendja live =====
 
     public async Task<List<LiveDroneResponse>> GetLiveFleetAsync()
     {
@@ -115,6 +187,8 @@ public class TelemetryService : ITelemetryService
                 ? missions.FirstOrDefault(m => m.Id == p.MissionId.Value)
                 : null;
 
+            var geofence = await CheckGeofenceAsync(p);
+
             result.Add(new LiveDroneResponse(
                 p.DroneId, drone.SerialNumber, drone.Nickname, drone.Status.ToString(),
                 p.MissionId, mission?.Title,
@@ -124,7 +198,7 @@ public class TelemetryService : ITelemetryService
                 p.GroundSpeedMs, p.HeadingDegrees,
                 p.BatteryPercentage, p.SatelliteCount,
                 p.FlightMode, p.IsArmed,
-                BuildWarnings(p)));
+                BuildWarnings(p, geofence)));
         }
 
         return result;
@@ -149,6 +223,8 @@ public class TelemetryService : ITelemetryService
                 .Select(m => m.Title)
                 .FirstOrDefaultAsync();
 
+        var geofence = await CheckGeofenceAsync(p);
+
         return new LiveDroneResponse(
             droneId, drone.SerialNumber, drone.Nickname, drone.Status.ToString(),
             p.MissionId, missionTitle,
@@ -158,8 +234,10 @@ public class TelemetryService : ITelemetryService
             p.GroundSpeedMs, p.HeadingDegrees,
             p.BatteryPercentage, p.SatelliteCount,
             p.FlightMode, p.IsArmed,
-            BuildWarnings(p));
+            BuildWarnings(p, geofence));
     }
+
+    // ===== Historia =====
 
     // Rruga e fluturuar realisht — e holluar per te mos ngarkuar harten
     public async Task<List<TelemetryPointResponse>> GetMissionTrackAsync(
@@ -198,10 +276,15 @@ public class TelemetryService : ITelemetryService
         return points.Select(Map).ToList();
     }
 
+    // ===== Alarmet =====
+
     // Alarmet llogariten ne çast, jo ruhen
-    private static List<string> BuildWarnings(TelemetryPoint p)
+    private static List<string> BuildWarnings(TelemetryPoint p, string? geofenceWarning = null)
     {
         var warnings = new List<string>();
+
+        if (geofenceWarning != null)
+            warnings.Add(geofenceWarning);
 
         if (p.BatteryPercentage <= CriticalBattery)
             warnings.Add($"Bateri kritike: {p.BatteryPercentage:F0}%");

@@ -304,8 +304,8 @@ public static class DataSeeder
                 {
                     MissionId = m.Id,
                     SequenceNumber = k + 1,
-                    Latitude = Math.Round((decimal)(baseLat + (Rng.NextDouble() - 0.5) * 0.02), 6),
-                    Longitude = Math.Round((decimal)(baseLng + (Rng.NextDouble() - 0.5) * 0.02), 6),
+                    Latitude = Math.Round((decimal)(baseLat + Rng.NextDouble() * 0.025 + 0.002), 6),
+                    Longitude = Math.Round((decimal)(baseLng + Rng.NextDouble() * 0.025 + 0.002), 6),
                     AltitudeMeters = zone.MaxAltitudeMeters.HasValue
                         ? Rng.Next(40, zone.MaxAltitudeMeters.Value)
                         : 100,
