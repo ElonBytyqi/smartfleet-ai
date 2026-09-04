@@ -249,3 +249,13 @@ export interface ReportAnalysis {
   summary: string;
   analyzedAt: string;
 }
+export interface DroneModel {
+  id: string;
+  manufacturerName: string;
+  modelName: string;
+  maxFlightTimeMinutes: number;
+  maxPayloadKg: number;
+  maxSpeedKmh: number;
+  cameraSpecs: string | null;
+  droneCount: number;
+}

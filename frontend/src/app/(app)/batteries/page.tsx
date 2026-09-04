@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/page-header";
 import { FilterBar } from "@/components/filter-bar";
 import { ListCard } from "@/components/list-card";
 import { ErrorBanner } from "@/components/error-banner";
+import { CreateBatteryDialog } from "@/components/create-battery-dialog";
 import {
   Select,
   SelectContent,
@@ -66,12 +67,13 @@ export default function BatteriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Bateritë" count={batteries.length}>
+           <PageHeader title="Bateritë" count={batteries.length}>
         {needsAttention > 0 && (
           <span className="text-[13px] text-[var(--status-caution)]">
             {needsAttention} kërkojnë vëmendje
           </span>
         )}
+        <CreateBatteryDialog />
       </PageHeader>
 
       <FilterBar options={filters} value={filter} onChange={setFilter} />

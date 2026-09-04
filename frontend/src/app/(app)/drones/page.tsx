@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { FilterBar } from "@/components/filter-bar";
 import { ListCard } from "@/components/list-card";
+import { CreateDroneDialog } from "@/components/create-drone-dialog";
+import { CreateDroneModelDialog } from "@/components/create-drone-model-dialog";
 
 const filters = [
   { key: "all", label: "Të gjithë" },
@@ -30,10 +32,12 @@ export default function DronesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Dronët" count={drones.length}>
+            <PageHeader title="Dronët" count={drones.length}>
         <span className="font-mono text-[12px] text-muted-foreground">
           {totalHours.toFixed(0)} orë fluturimi gjithsej
         </span>
+        <CreateDroneModelDialog />
+        <CreateDroneDialog />
       </PageHeader>
 
       <FilterBar options={filters} value={filter} onChange={setFilter} />
