@@ -20,21 +20,85 @@ import {
   Radio,
   Brain,
 } from "lucide-react";
-import { api , tokens } from "@/lib/api";
+import { api, tokens } from "@/lib/api";
+import { Role, ROLE_LABELS } from "@/lib/constants";
+import { useRoles, hasAnyRole } from "@/lib/use-roles";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, endpoint: null },
-  { href: "/drones", label: "Dronët", icon: Plane, endpoint: "/drones" },
-  { href: "/missions", label: "Misionet", icon: Route, endpoint: "/missions" },
-  { href: "/batteries", label: "Bateritë", icon: BatteryMedium, endpoint: "/batteries" },
-  { href: "/pilots", label: "Pilotët", icon: UserRound, endpoint: "/pilots" },
-  { href: "/flight-zones", label: "Zonat", icon: MapPinned, endpoint: "/flight-zones" },
-  { href: "/maintenance", label: "Mirëmbajtja", icon: Wrench, endpoint: "/maintenance" },
-  { href: "/users", label: "Përdoruesit", icon: Users, endpoint: "/users" },
-  { href: "/live", label: "Ndjekja live", icon: Radio, endpoint: null },
-  { href: "/predictive", label: "Parashikimi", icon: Brain, endpoint: null },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    endpoint: null,
+    roles: [] as string[],
+  },
+  {
+    href: "/live",
+    label: "Ndjekja live",
+    icon: Radio,
+    endpoint: null,
+    roles: [] as string[],
+  },
+  {
+    href: "/drones",
+    label: "Dronët",
+    icon: Plane,
+    endpoint: "/drones",
+    roles: [] as string[],
+  },
+  {
+    href: "/missions",
+    label: "Misionet",
+    icon: Route,
+    endpoint: "/missions",
+    roles: [] as string[],
+  },
+  {
+    href: "/batteries",
+    label: "Bateritë",
+    icon: BatteryMedium,
+    endpoint: "/batteries",
+    roles: [] as string[],
+  },
+  {
+    href: "/pilots",
+    label: "Pilotët",
+    icon: UserRound,
+    endpoint: "/pilots",
+    roles: [Role.Admin, Role.FleetManager, Role.Operator] as string[],
+  },
+  {
+    href: "/flight-zones",
+    label: "Zonat",
+    icon: MapPinned,
+    endpoint: "/flight-zones",
+    roles: [] as string[],
+  },
+  {
+    href: "/maintenance",
+    label: "Mirëmbajtja",
+    icon: Wrench,
+    endpoint: "/maintenance",
+    roles: [] as string[],
+  },
+  {
+    href: "/predictive",
+    label: "Parashikimi",
+    icon: Brain,
+    endpoint: null,
+    roles: [Role.Admin, Role.FleetManager, Role.MaintenanceTechnician] as string[],
+  },
+  {
+    href: "/users",
+    label: "Përdoruesit",
+    icon: Users,
+    endpoint: "/users",
+    roles: [Role.Admin] as string[],
+  },
 ];
 
+// localStorage nuk ekziston ne server — useSyncExternalStore lejon
+// vlere te ndryshme per server dhe klient pa hydration mismatch
 const emptySubscribe = () => () => {};
 
 function useStoredEmail(): string | null {
@@ -48,16 +112,31 @@ function useStoredEmail(): string | null {
   );
 }
 
+// Kthen false ne server dhe ne renderin e pare, true pas hidratimit.
+// Pa kete, ridrejtimi te /login ndodh para se localStorage te lexohet.
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const email = useStoredEmail();
+  const roles = useRoles();
+  const hydrated = useHydrated();
   const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
 
+  // Fsheh lidhjet qe useri s'ka te drejte t'i hape
+  const visibleItems = navItems.filter((item) => hasAnyRole(roles, item.roles));
+
   useEffect(() => {
-    if (email === null) router.replace("/login");
-  }, [email, router]);
+    if (hydrated && email === null) router.replace("/login");
+  }, [hydrated, email, router]);
 
   // Te dhenat fillojne te vijne sa lëvizet miu drejt lidhjes
   function prefetch(key: string, endpoint: string | null) {
@@ -68,17 +147,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }
 
-
   function logout() {
     tokens.clear();
     router.replace("/login");
   }
 
-  if (email === null) return null;
+  if (!hydrated || email === null) return null;
 
   return (
-<div className="flex h-screen overflow-hidden">     
-<aside className="flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">        {/* Identiteti */}
+    <div className="flex h-screen overflow-hidden">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        {/* Identiteti */}
         <div className="border-b border-sidebar-border px-5 py-5">
           <p className="font-heading text-[15px] font-semibold tracking-tight text-white">
             SmartFleet
@@ -89,8 +168,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </p>
         </div>
 
-        <nav className="flex-1 space-y-0.5 px-3 py-4">
-          {navItems.map((item) => {
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+          {visibleItems.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
@@ -119,13 +198,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="border-t border-sidebar-border p-3">
-          <p className="truncate px-2 font-mono text-[11px] text-sidebar-foreground/50">
-            {email}
-          </p>
+          <div className="px-2">
+            <p className="truncate font-mono text-[11px] text-sidebar-foreground/50">
+              {email}
+            </p>
+            {roles.length > 0 && (
+              <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-primary/80">
+                {roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}
+              </p>
+            )}
+          </div>
+
           <div className="mt-2 flex gap-1">
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-white"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-white"
               aria-label="Ndërro temën"
             >
               {theme === "dark" ? (
@@ -136,7 +223,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </button>
             <button
               onClick={logout}
-              className="flex h-8 flex-1 items-center justify-center gap-2 rounded-md text-[13px] text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-white"
+              className="flex h-8 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md text-[13px] text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-white"
             >
               <LogOut className="h-4 w-4" strokeWidth={1.75} />
               Dil
@@ -145,8 +232,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-<main className="flex-1 overflow-y-auto">
-  <div className="mx-auto max-w-[1400px] p-8">{children}</div>
-</main>    </div>
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-[1400px] p-8">{children}</div>
+      </main>
+    </div>
   );
 }

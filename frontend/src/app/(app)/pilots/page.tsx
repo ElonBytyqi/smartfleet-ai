@@ -10,6 +10,8 @@ import {
 import { THRESHOLDS } from "@/lib/constants";
 import { StatusBadge } from "@/components/status-badge";
 import { PageHeader } from "@/components/page-header";
+import { RoleGuard } from "@/components/role-guard";
+import { Role } from "@/lib/constants";
 
 function CertificationList({ pilotId }: { pilotId: string }) {
   const { data, isLoading } = useCertifications(pilotId);
@@ -27,6 +29,7 @@ function CertificationList({ pilotId }: { pilotId: string }) {
   }
 
   return (
+    <RoleGuard roles={[Role.Admin, Role.FleetManager, Role.Operator]}>
     <div className="divide-y">
       {data.map((c) => {
         const urgent = c.isExpired || c.daysUntilExpiry <= 30;
@@ -62,6 +65,7 @@ function CertificationList({ pilotId }: { pilotId: string }) {
         );
       })}
     </div>
+    </RoleGuard>
   );
 }
 
@@ -75,6 +79,7 @@ export default function PilotsPage() {
   const selected = pilots.find((p) => p.id === selectedId) ?? pilots[0];
 
   return (
+    <RoleGuard roles={[Role.Admin, Role.FleetManager, Role.Operator]}>
     <div className="flex flex-col gap-6">
       <PageHeader title="Pilotët" count={pilots.length}>
         {expiring && expiring.length > 0 && (
@@ -192,5 +197,6 @@ export default function PilotsPage() {
         </div>
       </div>
     </div>
+    </RoleGuard>
   );
 }

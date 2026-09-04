@@ -9,6 +9,9 @@ import {
   useSetUserActive,
 } from "@/lib/queries";
 import { ROLE_LABELS } from "@/lib/constants";
+
+import { RoleGuard } from "@/components/role-guard";
+import { Role } from "@/lib/constants";
 import { getApiError } from "@/lib/errors";
 import { CreateUserDialog } from "@/components/create-user-dialog";
 import { PageHeader } from "@/components/page-header";
@@ -54,6 +57,7 @@ export default function UsersPage() {
   ];
 
   return (
+    <RoleGuard roles={[Role.Admin]}>
     <div className="flex flex-col gap-6">
       <PageHeader title="Përdoruesit" count={users.length}>
         {inactive > 0 && (
@@ -161,5 +165,6 @@ export default function UsersPage() {
         ))}
       </ListCard>
     </div>
+    </RoleGuard>
   );
 }

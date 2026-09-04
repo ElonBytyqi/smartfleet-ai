@@ -10,11 +10,15 @@ import {
   ChevronDown,
   Activity,
 } from "lucide-react";
-import { useFleetRisk, useRefreshFleetRisk, useAiHealth } from "@/lib/queries/ai";
+import { useFleetRisk, useRefreshFleetRisk, useAiHealth } from "@/lib/queries";
 import { DroneRisk } from "@/lib/types";
+import { Role } from "@/lib/constants";
 import { PageHeader } from "@/components/page-header";
 import { ListCard } from "@/components/list-card";
+import { RoleGuard } from "@/components/role-guard";
 import { CreateMaintenanceDialog } from "@/components/create-maintenance-dialog";
+
+const ALLOWED_ROLES = [Role.Admin, Role.FleetManager, Role.MaintenanceTechnician];
 
 const LEVEL_STYLES: Record<string, { color: string; label: string }> = {
   Critical: { color: "var(--status-warning)", label: "Kritik" },
@@ -31,14 +35,7 @@ function RiskGauge({ score, level }: { score: number; level: string }) {
   return (
     <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
       <svg className="absolute -rotate-90" width="64" height="64">
-        <circle
-          cx="32"
-          cy="32"
-          r="26"
-          fill="none"
-          stroke="var(--muted)"
-          strokeWidth="5"
-        />
+        <circle cx="32" cy="32" r="26" fill="none" stroke="var(--muted)" strokeWidth="5" />
         <circle
           cx="32"
           cy="32"
@@ -81,9 +78,7 @@ function DroneRiskRow({ risk }: { risk: DroneRisk }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="font-mono text-[14px] font-medium">
-              {risk.serialNumber}
-            </p>
+            <p className="font-mono text-[14px] font-medium">{risk.serialNumber}</p>
             <span
               className="rounded border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider"
               style={{
@@ -194,7 +189,7 @@ function DroneRiskRow({ risk }: { risk: DroneRisk }) {
   );
 }
 
-export default function PredictivePage() {
+function PredictiveContent() {
   const { data, isLoading, isError } = useFleetRisk();
   const refresh = useRefreshFleetRisk();
   const { data: health } = useAiHealth();
@@ -209,6 +204,7 @@ export default function PredictivePage() {
       ? risks.reduce((s, r) => s + r.riskScore, 0) / risks.length
       : 0;
 
+  // Shërbimi AI nuk përgjigjet
   if (isError || health?.available === false) {
     return (
       <div className="flex flex-col gap-6">
@@ -304,5 +300,13 @@ export default function PredictivePage() {
         ))}
       </ListCard>
     </div>
+  );
+}
+
+export default function PredictivePage() {
+  return (
+    <RoleGuard roles={ALLOWED_ROLES}>
+      <PredictiveContent />
+    </RoleGuard>
   );
 }
