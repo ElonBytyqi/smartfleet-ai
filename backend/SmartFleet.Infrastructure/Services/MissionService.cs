@@ -13,6 +13,7 @@ namespace SmartFleet.Infrastructure.Services
     public class MissionService : IMissionService
     {
         private readonly ApplicationDbContext _dbContext;
+        private const double RouteConflictMeters = 100;
 
         private static readonly string[] ValidTypes =
         {
@@ -71,6 +72,82 @@ namespace SmartFleet.Infrastructure.Services
                 .ToListAsync();
         }
 
+        private static double DistanceMeters(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double r = 6371000;
+            var p1 = lat1 * Math.PI / 180;
+            var p2 = lat2 * Math.PI / 180;
+            var dp = (lat2 - lat1) * Math.PI / 180;
+            var dl = (lon2 - lon1) * Math.PI / 180;
+
+            var a = Math.Sin(dp / 2) * Math.Sin(dp / 2) +
+                    Math.Cos(p1) * Math.Cos(p2) * Math.Sin(dl / 2) * Math.Sin(dl / 2);
+
+            return 2 * r * Math.Asin(Math.Sqrt(a));
+        }
+
+        // Kontrollon nese rruget e dy misioneve kalojne shume afer
+        private async Task<List<string>> CheckRouteConflictsAsync(Mission mission)
+        {
+            var conflicts = new List<string>();
+
+            var myWaypoints = await _dbContext.MissionWaypoints
+                .Where(w => w.MissionId == mission.Id)
+                .Select(w => new { Lat = (double)w.Latitude, Lng = (double)w.Longitude })
+                .ToListAsync();
+
+            if (myWaypoints.Count == 0) return conflicts;
+
+            var start = mission.ScheduledStart;
+            var end = EffectiveEnd(start, mission.ScheduledEnd);
+
+            // Misionet e tjera qe mbivendosen kohorisht
+            var overlapping = await _dbContext.Missions
+     .Where(m => m.Id != mission.Id
+                 && m.DroneId != null
+                 && m.DroneId != mission.DroneId
+                 && (m.Status == MissionStatus.Planned
+                     || m.Status == MissionStatus.Approved
+                     || m.Status == MissionStatus.InProgress))
+         .Select(m => new
+                {
+                    m.Id,
+                    m.Title,
+                    m.ScheduledStart,
+                    m.ScheduledEnd,
+                    DroneSerial = m.Drone!.SerialNumber,
+                })
+                .ToListAsync();
+
+            foreach (var other in overlapping)
+            {
+                var otherEnd = EffectiveEnd(other.ScheduledStart, other.ScheduledEnd);
+                if (!(start < otherEnd && other.ScheduledStart < end)) continue;
+
+                var theirWaypoints = await _dbContext.MissionWaypoints
+                    .Where(w => w.MissionId == other.Id)
+                    .Select(w => new { Lat = (double)w.Latitude, Lng = (double)w.Longitude })
+                    .ToListAsync();
+
+                if (theirWaypoints.Count == 0) continue;
+
+                // Distanca me e vogel mes cdo dy pikash
+                var minDistance = double.MaxValue;
+                foreach (var mine in myWaypoints)
+                    foreach (var theirs in theirWaypoints)
+                    {
+                        var d = DistanceMeters(mine.Lat, mine.Lng, theirs.Lat, theirs.Lng);
+                        if (d < minDistance) minDistance = d;
+                    }
+
+                if (minDistance < RouteConflictMeters)
+                    conflicts.Add(
+                        $"Rruga kalon {minDistance:F0} m nga misioni '{other.Title}' " +
+                        $"({other.DroneSerial}) në të njëjtin orar.");
+            }
+
+            return conflicts;
+        }
         public async Task<MissionResponse?> GetByIdAsync(Guid id)
         {
             return await _dbContext.Missions
@@ -271,6 +348,9 @@ namespace SmartFleet.Infrastructure.Services
                 if (!hasValidCert)
                     conflicts.Add("Pilot has no valid certification for the mission date.");
             }
+
+            // Kontrollo nese rruget kryqezohen me misione te tjera
+            conflicts.AddRange(await CheckRouteConflictsAsync(mission));
 
             return new ConflictResponse(conflicts.Count > 0, conflicts);
         }

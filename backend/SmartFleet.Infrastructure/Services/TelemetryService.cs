@@ -21,6 +21,10 @@ public class TelemetryService : ITelemetryService
     private const double MaxAltitude = 500;
     private const double HighVibration = 60;
 
+    // Distanca minimale e sigurt mes droneve
+    private const double MinSeparationMeters = 60;
+    private const double MinVerticalSeparationMeters = 20;
+
     public TelemetryService(
         TelemetryDbContext mongo,
         ILiveStateService live,
@@ -33,13 +37,27 @@ public class TelemetryService : ITelemetryService
         _broadcaster = broadcaster;
     }
 
-    // ===== Geofence =====
+    // ===== Gjeometria =====
+
+    private static double DistanceMeters(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double r = 6371000;
+        var p1 = lat1 * Math.PI / 180;
+        var p2 = lat2 * Math.PI / 180;
+        var dp = (lat2 - lat1) * Math.PI / 180;
+        var dl = (lon2 - lon1) * Math.PI / 180;
+
+        var a = Math.Sin(dp / 2) * Math.Sin(dp / 2) +
+                Math.Cos(p1) * Math.Cos(p2) * Math.Sin(dl / 2) * Math.Sin(dl / 2);
+
+        return 2 * r * Math.Asin(Math.Sqrt(a));
+    }
 
     // Algoritmi ray-casting: numeron sa here nje vije horizontale
     // nga pika kalon anet e poligonit. Numer tek = brenda.
     private static bool IsInsidePolygon(double lat, double lng, List<(double Lng, double Lat)> polygon)
     {
-        if (polygon.Count < 3) return true;   // pa poligon te vlefshem, mos alarmo
+        if (polygon.Count < 3) return true;
 
         var inside = false;
 
@@ -105,11 +123,51 @@ public class TelemetryService : ITelemetryService
         return null;
     }
 
+    // Gjen dronet qe jane shume afer njeri-tjetrit
+    private static Dictionary<Guid, List<string>> DetectProximity(
+        List<TelemetryPoint> points,
+        Dictionary<Guid, string> serialNumbers)
+    {
+        var conflicts = new Dictionary<Guid, List<string>>();
+
+        // Vetem dronet aktive, me te dhena te freskëta
+        var active = points
+            .Where(p => p.IsArmed && (DateTime.UtcNow - p.Timestamp).TotalSeconds < 30)
+            .ToList();
+
+        for (var i = 0; i < active.Count; i++)
+        {
+            for (var j = i + 1; j < active.Count; j++)
+            {
+                var a = active[i];
+                var b = active[j];
+
+                var horizontal = DistanceMeters(a.Latitude, a.Longitude, b.Latitude, b.Longitude);
+                var vertical = Math.Abs(a.AltitudeMeters - b.AltitudeMeters);
+
+                if (horizontal > MinSeparationMeters || vertical > MinVerticalSeparationMeters)
+                    continue;
+
+                var severity = horizontal < 25 ? "PËRPLASJE E MUNDSHME" : "Afërsi";
+
+                var nameA = serialNumbers.GetValueOrDefault(a.DroneId, "dron tjetër");
+                var nameB = serialNumbers.GetValueOrDefault(b.DroneId, "dron tjetër");
+
+                if (!conflicts.ContainsKey(a.DroneId)) conflicts[a.DroneId] = new();
+                if (!conflicts.ContainsKey(b.DroneId)) conflicts[b.DroneId] = new();
+
+                conflicts[a.DroneId].Add($"{severity}: {nameB} në {horizontal:F0} m");
+                conflicts[b.DroneId].Add($"{severity}: {nameA} në {horizontal:F0} m");
+            }
+        }
+
+        return conflicts;
+    }
+
     // ===== Ingest =====
 
     public async Task<(bool Success, string? Error)> IngestAsync(IngestTelemetryRequest request)
     {
-        // Validime baze — te dhena te pavlefshme s'duhet te hyjne ne histori
         if (request.Latitude is < -90 or > 90)
             return (false, "Latitude out of range.");
         if (request.Longitude is < -180 or > 180)
@@ -162,7 +220,6 @@ public class TelemetryService : ITelemetryService
 
         var droneIds = points.Select(p => p.DroneId).ToList();
 
-        // Nje query e vetme per te gjithe dronet
         var drones = await _db.Drones
             .Where(d => droneIds.Contains(d.Id))
             .Select(d => new { d.Id, d.SerialNumber, d.Nickname, d.Status })
@@ -176,6 +233,10 @@ public class TelemetryService : ITelemetryService
             .Select(m => new { m.Id, m.Title })
             .ToListAsync();
 
+        // Kontrollo aferesine mes te gjithe droneve njeheresh
+        var serialMap = drones.ToDictionary(d => d.Id, d => d.SerialNumber);
+        var proximity = DetectProximity(points, serialMap);
+
         var result = new List<LiveDroneResponse>();
 
         foreach (var p in points.OrderByDescending(x => x.Timestamp))
@@ -188,6 +249,7 @@ public class TelemetryService : ITelemetryService
                 : null;
 
             var geofence = await CheckGeofenceAsync(p);
+            proximity.TryGetValue(p.DroneId, out var nearby);
 
             result.Add(new LiveDroneResponse(
                 p.DroneId, drone.SerialNumber, drone.Nickname, drone.Status.ToString(),
@@ -198,7 +260,7 @@ public class TelemetryService : ITelemetryService
                 p.GroundSpeedMs, p.HeadingDegrees,
                 p.BatteryPercentage, p.SatelliteCount,
                 p.FlightMode, p.IsArmed,
-                BuildWarnings(p, geofence)));
+                BuildWarnings(p, geofence, nearby)));
         }
 
         return result;
@@ -225,6 +287,16 @@ public class TelemetryService : ITelemetryService
 
         var geofence = await CheckGeofenceAsync(p);
 
+        // Kontrollo aferesine me dronet e tjere aktive
+        var allPoints = await _live.GetAllLastPositionsAsync();
+        var otherIds = allPoints.Select(x => x.DroneId).ToList();
+        var serials = await _db.Drones
+            .Where(d => otherIds.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, d => d.SerialNumber);
+
+        var proximity = DetectProximity(allPoints, serials);
+        proximity.TryGetValue(droneId, out var nearby);
+
         return new LiveDroneResponse(
             droneId, drone.SerialNumber, drone.Nickname, drone.Status.ToString(),
             p.MissionId, missionTitle,
@@ -234,7 +306,7 @@ public class TelemetryService : ITelemetryService
             p.GroundSpeedMs, p.HeadingDegrees,
             p.BatteryPercentage, p.SatelliteCount,
             p.FlightMode, p.IsArmed,
-            BuildWarnings(p, geofence));
+            BuildWarnings(p, geofence, nearby));
     }
 
     // ===== Historia =====
@@ -279,9 +351,16 @@ public class TelemetryService : ITelemetryService
     // ===== Alarmet =====
 
     // Alarmet llogariten ne çast, jo ruhen
-    private static List<string> BuildWarnings(TelemetryPoint p, string? geofenceWarning = null)
+    private static List<string> BuildWarnings(
+        TelemetryPoint p,
+        string? geofenceWarning = null,
+        List<string>? proximityWarnings = null)
     {
         var warnings = new List<string>();
+
+        // Aferesia me dronet e tjere ka perparesine me te larte
+        if (proximityWarnings != null)
+            warnings.AddRange(proximityWarnings);
 
         if (geofenceWarning != null)
             warnings.Add(geofenceWarning);
