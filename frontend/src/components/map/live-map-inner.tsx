@@ -16,6 +16,8 @@ import { LiveDrone } from "@/lib/use-telemetry";
 import { FlightZone } from "@/lib/types";
 import { droneColor } from "@/lib/drone-colors";
 import { project } from "@/lib/geo";
+import { smoothPath, fadeSegments, splitAtWaypoint } from "@/lib/smooth-path";
+import { RouteArrows } from "./route-arrows";
 import "leaflet/dist/leaflet.css";
 
 const LAYERS = {
@@ -59,6 +61,7 @@ function zonePoints(geoJson: string): [number, number][] {
   }
 }
 
+// Kuadrikopter qe rrotullohet sipas drejtimit
 function droneIcon(heading: number, color: string, hasWarning: boolean, selected: boolean) {
   const size = selected ? 54 : 46;
 
@@ -100,22 +103,39 @@ function droneIcon(heading: number, color: string, hasWarning: boolean, selected
   });
 }
 
-// Shenues i vogel me numrin e waypoint-it
-function waypointIcon(seq: number, color: string, isNext: boolean) {
-  const size = isNext ? 26 : 20;
+// Waypoint me tri gjendje: i kaluar, i ardhshmi, ne pritje
+function waypointIcon(
+  seq: number,
+  color: string,
+  state: "passed" | "next" | "upcoming"
+) {
+  const size = state === "next" ? 26 : 20;
+
+  const bg =
+    state === "next"
+      ? color
+      : state === "passed"
+        ? "rgba(0,0,0,.4)"
+        : "rgba(0,0,0,.6)";
+
+  const border =
+    state === "next" ? "#fff" : state === "passed" ? "rgba(255,255,255,.25)" : color;
+
+  const text = state === "passed" ? "rgba(255,255,255,.45)" : "#fff";
+
   return L.divIcon({
     className: "",
     html: `
       <div style="
         width:${size}px;height:${size}px;border-radius:50%;
         display:flex;align-items:center;justify-content:center;
-        background:${isNext ? color : "rgba(0,0,0,.55)"};
-        border:1.5px solid ${isNext ? "#fff" : color};
-        color:#fff;font-family:var(--font-mono);font-size:${isNext ? 12 : 10}px;
-        font-weight:500;
+        background:${bg};
+        border:1.5px solid ${border};
+        color:${text};font-family:var(--font-mono);
+        font-size:${state === "next" ? 12 : 10}px;font-weight:500;
         box-shadow:0 1px 4px rgba(0,0,0,.5);
-        ${isNext ? "animation: wp-pulse 1.6s ease-in-out infinite;" : ""}
-      ">${seq}</div>`,
+        ${state === "next" ? "animation: wp-pulse 1.6s ease-in-out infinite;" : ""}
+      ">${state === "passed" ? "✓" : seq}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
@@ -127,7 +147,8 @@ function FitOnFirstLoad({ points }: { points: [number, number][] }) {
 
   useEffect(() => {
     if (!hasPoints) return;
-    map.fitBounds(L.latLngBounds(points), { padding: [70, 70], maxZoom: 17 });
+    map.fitBounds(L.latLngBounds(points), { padding: [60, 60], maxZoom: 17 });
+    // Vetem heren e pare — pastaj perdoruesi kontrollon harten
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPoints]);
 
@@ -150,6 +171,7 @@ export default function LiveMapInner({
   selectedId,
   onSelect,
   followTarget,
+  compact = false,
 }: {
   drones: LiveDrone[];
   zones: FlightZone[];
@@ -158,6 +180,7 @@ export default function LiveMapInner({
   selectedId: string | null;
   onSelect: (id: string) => void;
   followTarget: [number, number] | null;
+  compact?: boolean;
 }) {
   const [layer, setLayer] = useState<LayerKey>("satellite");
 
@@ -172,26 +195,49 @@ export default function LiveMapInner({
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.18); }
         }
+        @keyframes route-flow {
+          to { stroke-dashoffset: -24; }
+        }
+        @keyframes arrow-pulse {
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 1; }
+        }
+        .route-planned {
+          animation: route-flow 1.4s linear infinite;
+        }
       `}</style>
 
-      <div className="absolute right-4 top-16 z-[1000] flex gap-0.5 rounded-md border border-border bg-card/95 p-0.5 shadow-sm backdrop-blur">
-        {(Object.keys(LAYERS) as LayerKey[]).map((k) => (
-          <button
-            key={k}
-            onClick={() => setLayer(k)}
-            className={`cursor-pointer rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
-              layer === k
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {LAYERS[k].label}
-          </button>
-        ))}
-      </div>
+      {!compact && (
+        <div className="absolute right-4 top-4 z-[1000] flex gap-0.5 rounded-md border border-border bg-card/95 p-0.5 shadow-sm backdrop-blur">
+          {(Object.keys(LAYERS) as LayerKey[]).map((k) => (
+            <button
+              key={k}
+              onClick={() => setLayer(k)}
+              className={`cursor-pointer rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                layer === k
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {LAYERS[k].label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      <MapContainer center={center} zoom={15} scrollWheelZoom className="h-full w-full">
-        <TileLayer key={layer} attribution={active.attribution} url={active.url} maxZoom={19} />
+      <MapContainer
+        center={center}
+        zoom={compact ? 16 : 15}
+        scrollWheelZoom={!compact}
+        zoomControl={!compact}
+        className="h-full w-full"
+      >
+        <TileLayer
+          key={layer}
+          attribution={active.attribution}
+          url={active.url}
+          maxZoom={19}
+        />
 
         <FitOnFirstLoad points={points} />
         <FollowDrone target={followTarget} />
@@ -215,69 +261,119 @@ export default function LiveMapInner({
           );
         })}
 
-        {/* Rruga e planifikuar — vije e nderprere */}
+        {/* Rruga e planifikuar — e ndare ne pjesen e kaluar dhe te mbetur */}
         {routes.map((r) => {
           const color = droneColor(r.droneId);
           const isSelected = selectedId === r.droneId;
-          const line = r.waypoints.map((w) => [w.lat, w.lng] as [number, number]);
+          const raw = r.waypoints.map((w) => [w.lat, w.lng] as [number, number]);
+
+          const { passed, remaining } = splitAtWaypoint(raw, r.nextIndex);
 
           return (
             <div key={`route-${r.droneId}`}>
+              {/* Pjesa e kaluar — e zbehte, pa animacion */}
+              {passed.length > 1 && (
+                <Polyline
+                  positions={passed}
+                  pathOptions={{
+                    color,
+                    weight: 1,
+                    opacity: isSelected ? 0.22 : 0.12,
+                    dashArray: "3 6",
+                  }}
+                />
+              )}
+
+              {/* Pjesa e mbetur — e ndritshme, me vije qe rrjedh dhe shigjeta */}
+              {remaining.length > 1 && (
+                <>
+                  <Polyline
+                    positions={remaining}
+                    className="route-planned"
+                    pathOptions={{
+                      color,
+                      weight: 2,
+                      opacity: isSelected ? 0.75 : 0.45,
+                      dashArray: "8 16",
+                    }}
+                  />
+
+                  <RouteArrows
+                    path={remaining}
+                    color={color}
+                    spacing={45}
+                    opacity={isSelected ? 1 : 0.55}
+                  />
+                </>
+              )}
+
+              {/* Waypoints me gjendje te ndryshme */}
+              {r.waypoints.map((w, i) => {
+                const state =
+                  i < r.nextIndex ? "passed" : i === r.nextIndex ? "next" : "upcoming";
+
+                return (
+                  <Marker
+                    key={`wp-${r.droneId}-${w.seq}`}
+                    position={[w.lat, w.lng]}
+                    icon={waypointIcon(w.seq, color, state)}
+                    interactive={false}
+                    opacity={
+                      isSelected || state === "next"
+                        ? 1
+                        : state === "passed"
+                          ? 0.4
+                          : 0.6
+                    }
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
+
+        {/* Trajektorja e fluturuar — e lakuar, me zbehje graduale */}
+        {tracks.map((t) => {
+          if (t.points.length < 2) return null;
+
+          const color = droneColor(t.droneId);
+          const isSelected = selectedId === t.droneId;
+          const curved = smoothPath(t.points, 8);
+          const segments = fadeSegments(curved);
+
+          return (
+            <div key={`track-${t.droneId}`}>
+              {/* Shkelqim i gjere poshte */}
               <Polyline
-                positions={line}
+                positions={curved}
                 pathOptions={{
                   color,
-                  weight: 1.5,
-                  opacity: isSelected ? 0.55 : 0.3,
-                  dashArray: "6 8",
+                  weight: isSelected ? 9 : 7,
+                  opacity: 0.12,
+                  lineCap: "round",
+                  lineJoin: "round",
                 }}
               />
 
-              {r.waypoints.map((w, i) => (
-                <Marker
-                  key={`wp-${r.droneId}-${w.seq}`}
-                  position={[w.lat, w.lng]}
-                  icon={waypointIcon(w.seq, color, i === r.nextIndex)}
-                  interactive={false}
-                  opacity={isSelected || i === r.nextIndex ? 1 : 0.55}
+              {/* Segmentet me opacitet ne rritje */}
+              {segments.map((seg, i) => (
+                <Polyline
+                  key={i}
+                  positions={seg.points}
+                  pathOptions={{
+                    color,
+                    weight: isSelected ? 3.5 : 2.5,
+                    opacity: seg.opacity * (isSelected ? 1 : 0.75),
+                    lineCap: "round",
+                    lineJoin: "round",
+                  }}
                 />
               ))}
             </div>
           );
         })}
 
-        {/* Trajektorja e fluturuar */}
-        {tracks.map((t) => {
-          if (t.points.length < 2) return null;
-          const color = droneColor(t.droneId);
-          const isSelected = selectedId === t.droneId;
-
-          // Ndajme ne dy pjese: e vjetra e zbehte, e freskëta e ndritshme
-          const cut = Math.max(0, t.points.length - 40);
-          const older = t.points.slice(0, cut + 1);
-          const recent = t.points.slice(cut);
-
-          return (
-            <div key={`track-${t.droneId}`}>
-              {older.length > 1 && (
-                <Polyline
-                  positions={older}
-                  pathOptions={{ color, weight: 2, opacity: isSelected ? 0.35 : 0.2 }}
-                />
-              )}
-              <Polyline
-                positions={recent}
-                pathOptions={{ color, weight: 6, opacity: 0.18 }}
-              />
-              <Polyline
-                positions={recent}
-                pathOptions={{ color, weight: isSelected ? 3.5 : 2.5, opacity: 0.95 }}
-              />
-            </div>
-          );
-        })}
-
-        {/* Vija e drejtimit: nga droni drejt pikes tjeter */}
+        {/* Vija nga droni drejt pikes tjeter */}
         {drones.map((d) => {
           const route = routes.find((r) => r.droneId === d.droneId);
           if (!route) return null;
@@ -294,9 +390,9 @@ export default function LiveMapInner({
               ]}
               pathOptions={{
                 color,
-                weight: 2,
-                opacity: selectedId === d.droneId ? 0.85 : 0.5,
-                dashArray: "3 5",
+                weight: 1.5,
+                opacity: selectedId === d.droneId ? 0.7 : 0.35,
+                dashArray: "2 6",
               }}
             />
           );

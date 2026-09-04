@@ -259,7 +259,10 @@ public class TelemetryService : ITelemetryService
                 p.Latitude, p.Longitude, p.AltitudeMeters,
                 p.GroundSpeedMs, p.HeadingDegrees,
                 p.BatteryPercentage, p.SatelliteCount,
-                p.FlightMode, p.IsArmed,
+
+                               p.FlightMode, p.IsArmed,
+                p.VerticalSpeedMs, p.BatteryVoltage, p.SignalStrength,
+                p.TemperatureCelsius, p.VibrationLevel,
                 BuildWarnings(p, geofence, nearby)));
         }
 
@@ -305,8 +308,10 @@ public class TelemetryService : ITelemetryService
             p.Latitude, p.Longitude, p.AltitudeMeters,
             p.GroundSpeedMs, p.HeadingDegrees,
             p.BatteryPercentage, p.SatelliteCount,
-            p.FlightMode, p.IsArmed,
-            BuildWarnings(p, geofence, nearby));
+                           p.FlightMode, p.IsArmed,
+                p.VerticalSpeedMs, p.BatteryVoltage, p.SignalStrength,
+                p.TemperatureCelsius, p.VibrationLevel,
+                BuildWarnings(p, geofence, nearby));
     }
 
     // ===== Historia =====

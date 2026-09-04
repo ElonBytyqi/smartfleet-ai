@@ -23,6 +23,11 @@ export interface LiveDrone {
   flightMode: string;
   isArmed: boolean;
   warnings: string[];
+    verticalSpeedMs?: number;
+  batteryVoltage?: number;
+  signalStrength?: number;
+  temperatureCelsius?: number | null;
+  vibrationLevel?: number | null;
 }
 
 const HUB_URL =

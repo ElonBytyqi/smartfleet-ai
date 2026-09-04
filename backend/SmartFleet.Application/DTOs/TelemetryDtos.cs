@@ -58,4 +58,10 @@ public record LiveDroneResponse(
     int SatelliteCount,
     string FlightMode,
     bool IsArmed,
+        double VerticalSpeedMs,
+    double BatteryVoltage,
+    double SignalStrength,
+    double? TemperatureCelsius,
+    double? VibrationLevel,
+   
     List<string> Warnings);

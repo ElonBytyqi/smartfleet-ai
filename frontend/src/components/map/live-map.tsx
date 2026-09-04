@@ -24,6 +24,7 @@ export function LiveMap(props: {
   selectedId: string | null;
   onSelect: (id: string) => void;
   followTarget: [number, number] | null;
+  compact?: boolean;
 }) {
   return <Inner {...props} />;
 }
