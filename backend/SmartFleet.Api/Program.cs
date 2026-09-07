@@ -24,11 +24,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-{
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection"));
-});
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditInterceptor>();
+
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+    options
+        .UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
 // MongoDB — singleton sepse klienti eshte thread-safe dhe menaxhon vete lidhjet
 builder.Services.AddSingleton<TelemetryDbContext>();
@@ -59,6 +61,7 @@ builder.Services.AddScoped<IFlightRecordService, FlightRecordService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITelemetryService, TelemetryService>();
 builder.Services.AddHttpClient<IAiService, AiService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 
 
 builder.Services.AddSignalR();

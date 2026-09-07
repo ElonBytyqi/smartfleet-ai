@@ -270,3 +270,25 @@ export interface DroneComponent {
   expectedLifespanHours: number | null;
   status: string;
 }
+
+
+export interface AuditLog {
+  id: string;
+  userId: string | null;
+  userEmail: string | null;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  entityLabel: string | null;
+  changes: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}

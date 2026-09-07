@@ -326,21 +326,30 @@ namespace SmartFleet.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Changes")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DetailsJson")
-                        .HasColumnType("text");
-
                     b.Property<Guid?>("EntityId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("EntityLabel")
+                        .HasColumnType("text");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserEmail")
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uuid");

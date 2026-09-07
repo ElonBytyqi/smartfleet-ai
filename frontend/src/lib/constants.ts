@@ -143,3 +143,65 @@ export const COMPONENT_STATUS_LABELS: Record<string, string> = {
   NeedsInspection: "Për inspektim",
   Replaced: "I zëvendësuar",
 };
+
+
+// ===== Audit =====
+
+export const AUDIT_ACTIONS = ["Created", "Updated", "Deleted"] as const;
+
+export const ACTION_LABELS: Record<string, string> = {
+  Created: "Krijuar",
+  Updated: "Ndryshuar",
+  Deleted: "Fshirë",
+};
+
+export const ENTITY_LABELS: Record<string, string> = {
+  Drone: "Dron",
+  DroneModel: "Model droni",
+  DroneComponent: "Komponent",
+  Battery: "Bateri",
+  Pilot: "Pilot",
+  Certification: "Certifikatë",
+  FlightZone: "Zonë fluturimi",
+  Mission: "Mision",
+  MissionWaypoint: "Pikë fluturimi",
+  PreFlightChecklist: "Checklist",
+  PostFlightReport: "Raport fluturimi",
+  MaintenanceRecord: "Mirëmbajtje",
+  ApplicationUser: "Përdorues",
+};
+
+// Emrat e fushave ne shqip
+export const FIELD_LABELS: Record<string, string> = {
+  SerialNumber: "Numri serik",
+  Nickname: "Nofka",
+  Status: "Statusi",
+  Title: "Titulli",
+  Name: "Emri",
+  FullName: "Emri i plotë",
+  Email: "Email",
+  IsActive: "Aktiv",
+  IsRestricted: "E kufizuar",
+  IsAutonomous: "Autonom",
+  TotalFlightHours: "Orë fluturimi",
+  HealthPercentage: "Shëndeti",
+  CycleCount: "Cikle",
+  CapacityMah: "Kapaciteti",
+  DroneId: "Droni",
+  PilotId: "Piloti",
+  BatteryId: "Bateria",
+  FlightZoneId: "Zona",
+  MissionType: "Tipi i misionit",
+  ZoneType: "Tipi i zonës",
+  ScheduledStart: "Fillimi",
+  ScheduledEnd: "Mbarimi",
+  ActualStart: "Nisja reale",
+  ActualEnd: "Mbarimi real",
+  Description: "Përshkrimi",
+  Cost: "Kostoja",
+  LicenseNumber: "Numri i licencës",
+  ExpiryDate: "Skadon",
+  MaxAltitudeMeters: "Lartësia maksimale",
+  ComponentType: "Tipi i komponentit",
+  ExpectedLifespanHours: "Jetëgjatësia",
+};

@@ -19,6 +19,7 @@ import {
   Users,
   Radio,
   Brain,
+  History,
 } from "lucide-react";
 import { api, tokens } from "@/lib/api";
 import { Role, ROLE_LABELS } from "@/lib/constants";
@@ -95,6 +96,14 @@ const navItems = [
     endpoint: "/users",
     roles: [Role.Admin] as string[],
   },
+    {
+    href: "/audit",
+    label: "Regjistri",
+    icon: History,
+    endpoint: null,
+    roles: [Role.Admin] as string[],
+  },
+  
 ];
 
 // localStorage nuk ekziston ne server — useSyncExternalStore lejon
