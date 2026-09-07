@@ -6,7 +6,7 @@ import { useFlightZones } from "@/lib/queries";
 import { TYPE_LABELS } from "@/lib/constants";
 import { ZoneMap } from "@/components/map/zone-map";
 import { PageHeader } from "@/components/page-header";
-
+import { CreateZoneDialog } from "@/components/create-zone-dialog";
 export default function FlightZonesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data, isLoading } = useFlightZones();
@@ -16,13 +16,14 @@ export default function FlightZonesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Zonat e fluturimit" count={zones.length}>
+          <PageHeader title="Zonat e fluturimit" count={zones.length}>
         {restricted > 0 && (
           <div className="flex items-center gap-2 text-[var(--status-caution)]">
             <ShieldAlert className="h-3.5 w-3.5" strokeWidth={2} />
             <span className="text-[13px]">{restricted} të kufizuara</span>
           </div>
         )}
+        <CreateZoneDialog />
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">

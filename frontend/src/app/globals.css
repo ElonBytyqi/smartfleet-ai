@@ -190,3 +190,28 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Leaflet perdor z-index deri ne 1000; dialogu duhet siper */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-control {
+  z-index: 400 !important;
+}
+
+/* Dialogu mbi harten */
+[data-slot="dialog-overlay"] {
+  z-index: 9000 !important;
+}
+[data-slot="dialog-content"] {
+  z-index: 9100 !important;
+}
+
+/* Select, dropdown, tooltip — mbi dialogun */
+[data-radix-popper-content-wrapper] {
+  z-index: 9500 !important;
+}
+
+/* Harta brenda dialogut mbetet ne shtresen e vet */
+[data-slot="dialog-content"] .leaflet-container {
+  z-index: 1;
+}
