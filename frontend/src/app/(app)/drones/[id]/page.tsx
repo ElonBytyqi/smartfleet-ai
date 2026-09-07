@@ -7,6 +7,8 @@ import { api } from "@/lib/api";
 import { Drone, Battery, Mission } from "@/lib/types";
 import { StatusBadge } from "@/components/status-badge";
 import { ArrowLeft, BatteryMedium, Route, Plane } from "lucide-react";
+import { DroneComponentsPanel } from "@/components/drone-components-panel";
+import { Cpu } from "lucide-react";
 
 export default function DroneDetailPage({
   params,
@@ -180,6 +182,17 @@ export default function DroneDetailPage({
             </div>
           )}
         </section>
+
+              <section className="rounded-lg border bg-card p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Cpu className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+          <h2 className="font-heading text-sm font-semibold">Komponentët</h2>
+        </div>
+        <DroneComponentsPanel
+          droneId={id}
+          droneHours={drone.totalFlightHours}
+        />
+      </section>
       </div>
     </div>
   );

@@ -347,9 +347,70 @@ public static class DataSeeder
         }
         db.MaintenanceRecords.AddRange(records);
 
-        await db.SaveChangesAsync();
-        Console.WriteLine($">>> SEEDER: {drones.Count} dronë, {batteries.Count} bateri, " +
-                          $"{pilots.Count} pilotë, {zones.Count} zona, {missions.Count} misione.");
+
+        // ---------- Komponentët ----------
+        var componentTypes = new[]
+        {
+            ("Motor", 800),
+            ("Propeller", 200),
+            ("Camera", 1500),
+            ("GPS", 2000),
+            ("FlightController", 3000),
+            ("Gimbal", 1200),
+            ("Landing gear", 1000),
+        };
+
+        var components = new List<DroneComponent>();
+
+        foreach (var drone in drones)
+        {
+            // Cdo dron ka 4 motorë dhe 4 helika
+            for (var i = 1; i <= 4; i++)
+            {
+                components.Add(new DroneComponent
+                {
+                    DroneId = drone.Id,
+                    ComponentType = "Motor",
+                    SerialNumber = $"MTR-{Rng.Next(10000, 99999)}",
+                    InstalledAt = drone.PurchaseDate.GetValueOrDefault(today.AddDays(-300)),
+                    ExpectedLifespanHours = 800,
+                    Status = "OK"
+                });
+
+                components.Add(new DroneComponent
+                {
+                    DroneId = drone.Id,
+                    ComponentType = "Propeller",
+                    SerialNumber = $"PRP-{Rng.Next(10000, 99999)}",
+                    InstalledAt = drone.PurchaseDate.GetValueOrDefault(today.AddDays(-300)),
+                    ExpectedLifespanHours = 200,
+                    // Disa helika kane nevoje per inspektim
+                    Status = Rng.NextDouble() < 0.12 ? "NeedsInspection" : "OK"
+                });
+            }
+
+            // Komponentët e tjerë, nga një copë
+            foreach (var (type, lifespan) in componentTypes.Skip(2))
+            {
+                components.Add(new DroneComponent
+                {
+                    DroneId = drone.Id,
+                    ComponentType = type,
+                    SerialNumber = $"{type[..3].ToUpper()}-{Rng.Next(10000, 99999)}",
+                    InstalledAt = drone.PurchaseDate.GetValueOrDefault(today.AddDays(-300)),
+                    ExpectedLifespanHours = lifespan,
+                    Status = Rng.NextDouble() < 0.06 ? "NeedsInspection" : "OK"
+                });
+            }
+        }
+
+        db.DroneComponents.AddRange(components);
+
+        await db.SaveChangesAsync();   // ← ky ruan gjithçka deri këtu
+
+        Console.WriteLine($">>> SEEDER: {drones.Count} dronë, {components.Count} komponentë, " +
+                   $"{batteries.Count} bateri, {pilots.Count} pilotë, " +
+                   $"{zones.Count} zona, {missions.Count} misione.");
     }
 
     // Ndihmes: krijon nje zone katrore rreth nje pike

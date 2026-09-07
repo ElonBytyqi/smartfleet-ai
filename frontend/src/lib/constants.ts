@@ -108,3 +108,38 @@ export const THRESHOLDS = {
   batteryCritical: 70,
   certificationExpiryDays: 45,
 } as const;
+
+
+// ===== Komponentët e dronit =====
+
+export const COMPONENT_TYPES = [
+  "Motor",
+  "Propeller",
+  "Camera",
+  "GPS",
+  "FlightController",
+  "Gimbal",
+  "Landing gear",
+  "Antenna",
+  "Sensor",
+] as const;
+
+export const COMPONENT_LABELS: Record<string, string> = {
+  Motor: "Motor",
+  Propeller: "Helikë",
+  Camera: "Kamerë",
+  GPS: "GPS",
+  FlightController: "Kontrolluesi i fluturimit",
+  Gimbal: "Gimbal",
+  "Landing gear": "Këmbët e uljes",
+  Antenna: "Antenë",
+  Sensor: "Sensor",
+};
+
+export const COMPONENT_STATUSES = ["OK", "NeedsInspection", "Replaced"] as const;
+
+export const COMPONENT_STATUS_LABELS: Record<string, string> = {
+  OK: "Në rregull",
+  NeedsInspection: "Për inspektim",
+  Replaced: "I zëvendësuar",
+};

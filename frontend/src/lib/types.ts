@@ -259,3 +259,14 @@ export interface DroneModel {
   cameraSpecs: string | null;
   droneCount: number;
 }
+
+
+export interface DroneComponent {
+  id: string;
+  droneId: string;
+  componentType: string;
+  serialNumber: string | null;
+  installedAt: string;
+  expectedLifespanHours: number | null;
+  status: string;
+}
