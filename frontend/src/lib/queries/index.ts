@@ -6,5 +6,7 @@ export * from "./pilots";
 export * from "./zones";
 export * from "./maintenance";
 export * from "./users";
+export * from "./components";
 export * from "./telemetry";
 export * from "./ai";
+export * from "./audit";

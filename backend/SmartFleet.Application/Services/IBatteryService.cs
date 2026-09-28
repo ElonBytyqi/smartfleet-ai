@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SmartFleet.Application.DTOs;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using static SmartFleet.Application.DTOs.BatteryDtos;
@@ -8,8 +9,11 @@ namespace SmartFleet.Application.Services
     public interface IBatteryService
     {
 
-        Task<List<BatteryResponse>> GetAllAsync(Guid? droneId = null);
-        Task<BatteryResponse?> GetByIdAsync(Guid id);
+        Task<PagedResult<BatteryResponse>> GetAllAsync(
+            Guid? droneId = null,
+            string? status = null,
+            string? search = null,
+            PageRequest? paging = null); Task<BatteryResponse?> GetByIdAsync(Guid id);
         Task<List<BatteryResponse>> GetNeedingInspectionAsync(decimal healthThreshold = 80);
         Task<(bool Success, string? Error, Guid? Id)> CreateAsync(CreateBatteryRequest request);
         Task<(bool Success, string? Error)> UpdateAsync(Guid id, UpdateBatteryRequest request);

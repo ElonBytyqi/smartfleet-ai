@@ -7,7 +7,12 @@ namespace SmartFleet.Application.Services
 {
     public interface IMissionService
     {
-        Task<List<MissionResponse>> GetAllAsync(string? status = null, Guid? droneId = null, Guid? pilotId = null);
+        Task<PagedResult<MissionResponse>> GetAllAsync(
+         string? status = null,
+         Guid? droneId = null,
+         Guid? pilotId = null,
+         string? search = null,
+         PageRequest? paging = null);
         Task<MissionResponse?> GetByIdAsync(Guid id);
 
         Task<(bool Success, string? Error, Guid? Id)> CreateAsync(CreateMissionRequest request, Guid createdByUserId);

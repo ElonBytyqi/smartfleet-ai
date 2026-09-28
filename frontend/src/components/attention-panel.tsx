@@ -2,8 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Battery, Certification, Drone } from "@/lib/types";
+import { Battery, Certification } from "@/lib/types";
 import { AlertTriangle, BatteryWarning, FileWarning, Wrench } from "lucide-react";
+import { useDrones, useBatteries } from "@/lib/queries";
 import Link from "next/link";
 
 type Item = {
@@ -15,10 +16,7 @@ type Item = {
 };
 
 export function AttentionPanel() {
-  const { data: batteries } = useQuery({
-    queryKey: ["batteries"],
-    queryFn: async () => (await api.get<Battery[]>("/batteries")).data,
-  });
+   const { data: batteries } = useBatteries();
 
   const { data: certs } = useQuery({
     queryKey: ["expiring-certs"],
@@ -26,10 +24,7 @@ export function AttentionPanel() {
       (await api.get<Certification[]>("/pilots/certifications/expiring?days=45")).data,
   });
 
-  const { data: drones } = useQuery({
-    queryKey: ["drones"],
-    queryFn: async () => (await api.get<Drone[]>("/drones")).data,
-  });
+    const { data: drones } = useDrones();
 
   const items: Item[] = [];
 

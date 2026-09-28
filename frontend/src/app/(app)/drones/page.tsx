@@ -1,14 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import Link from "next/link";
 import { Plane } from "lucide-react";
-import { useDrones } from "@/lib/queries";
+import { useDronesPaged, type DroneFilter } from "@/lib/queries";
 import { DroneStatus } from "@/lib/constants";
 import { StatusBadge } from "@/components/status-badge";
 import { PageHeader } from "@/components/page-header";
 import { FilterBar } from "@/components/filter-bar";
 import { ListCard } from "@/components/list-card";
+import { Pagination } from "@/components/pagination";
+import { SearchInput } from "@/components/search-input";
 import { CreateDroneDialog } from "@/components/create-drone-dialog";
 import { CreateDroneModelDialog } from "@/components/create-drone-model-dialog";
 
@@ -21,34 +23,49 @@ const filters = [
 ];
 
 export default function DronesPage() {
-  const [filter, setFilter] = useState("all");
-  const { data, isLoading } = useDrones();
+  const [filter, setFilter] = useState<DroneFilter>({ page: 1, pageSize: 25 });
+  const [statusKey, setStatusKey] = useState("all");
 
-  const drones = data ?? [];
-  const visible =
-    filter === "all" ? drones : drones.filter((d) => d.status === filter);
+  const { data, isLoading } = useDronesPaged(filter);
 
-  const totalHours = drones.reduce((sum, d) => sum + d.totalFlightHours, 0);
+  const drones = data?.items ?? [];
+
+  function changeStatus(key: string) {
+    setStatusKey(key);
+    setFilter((prev) => ({
+      ...prev,
+      status: key === "all" ? undefined : key,
+      page: 1,
+    }));
+  }
 
   return (
     <div className="flex flex-col gap-6">
-            <PageHeader title="Dronët" count={drones.length}>
-        <span className="font-mono text-[12px] text-muted-foreground">
-          {totalHours.toFixed(0)} orë fluturimi gjithsej
-        </span>
+      <PageHeader title="Dronët" count={data?.totalCount ?? 0}>
+        <SearchInput
+          value={filter.search ?? ""}
+          onChange={(v) =>
+            setFilter((prev) => ({ ...prev, search: v || undefined, page: 1 }))
+          }
+          placeholder="Kërko dron..."
+        />
         <CreateDroneModelDialog />
         <CreateDroneDialog />
       </PageHeader>
 
-      <FilterBar options={filters} value={filter} onChange={setFilter} />
+      <FilterBar options={filters} value={statusKey} onChange={changeStatus} />
 
       <ListCard
         isLoading={isLoading}
-        isEmpty={visible.length === 0}
+        isEmpty={drones.length === 0}
         emptyIcon={Plane}
-        emptyText="Nuk ka dronë në këtë kategori."
+        emptyText={
+          filter.search
+            ? "Asnjë dron nuk përputhet me kërkimin."
+            : "Nuk ka dronë në këtë kategori."
+        }
       >
-        {visible.map((d) => (
+        {drones.map((d) => (
           <div
             key={d.id}
             className="flex items-center gap-5 px-6 py-4 transition-colors hover:bg-muted/40"
@@ -87,6 +104,20 @@ export default function DronesPage() {
           </div>
         ))}
       </ListCard>
+
+      {data && (
+        <Pagination
+          page={data.page}
+          totalPages={data.totalPages}
+          totalCount={data.totalCount}
+          pageSize={data.pageSize}
+          onPageChange={(p) => setFilter((prev) => ({ ...prev, page: p }))}
+          onPageSizeChange={(s) =>
+            setFilter((prev) => ({ ...prev, pageSize: s, page: 1 }))
+          }
+          itemLabel="dronë"
+        />
+      )}
     </div>
   );
 }

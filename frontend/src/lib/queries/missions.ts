@@ -2,13 +2,47 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Mission, Waypoint, ConflictCheck } from "@/lib/types";
+import { Mission, Waypoint, ConflictCheck, PagedResult } from "@/lib/types";
 import { qk } from "./keys";
 
-export function useMissions() {
+export interface MissionFilter {
+  status?: string;
+  droneId?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** Listë me paginim — për faqen e misioneve */
+export function useMissionsPaged(filter: MissionFilter) {
   return useQuery({
-    queryKey: qk.missions,
-    queryFn: async () => (await api.get<Mission[]>("/missions")).data,
+    queryKey: [...qk.missions, "paged", filter],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filter.status) params.set("status", filter.status);
+      if (filter.droneId) params.set("droneId", filter.droneId);
+      if (filter.search) params.set("search", filter.search);
+      params.set("page", String(filter.page ?? 1));
+      params.set("pageSize", String(filter.pageSize ?? 25));
+
+      return (await api.get<PagedResult<Mission>>(`/missions?${params}`)).data;
+    },
+    placeholderData: (prev) => prev,
+  });
+}
+
+/** Listë e plotë pa paginim — për dashboard dhe faqen e dronit */
+export function useMissions(droneId?: string) {
+  return useQuery({
+    queryKey: droneId
+      ? [...qk.missions, "all", droneId]
+      : [...qk.missions, "all"],
+    queryFn: async () =>
+      (
+        await api.get<Mission[]>(
+          droneId ? `/missions/all?droneId=${droneId}` : "/missions/all"
+        )
+      ).data,
   });
 }
 

@@ -4,12 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Battery } from "@/lib/types";
 import { BatteryMedium } from "lucide-react";
+import { useBatteries } from "@/lib/queries";
 
 export function BatteryHealth() {
-  const { data } = useQuery({
-    queryKey: ["batteries"],
-    queryFn: async () => (await api.get<Battery[]>("/batteries")).data,
-  });
+   const { data } = useBatteries();
 
   const sorted = [...(data ?? [])].sort(
     (a, b) => a.healthPercentage - b.healthPercentage

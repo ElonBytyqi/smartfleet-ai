@@ -215,3 +215,13 @@ body {
 [data-slot="dialog-content"] .leaflet-container {
   z-index: 1;
 }
+
+/* Dropdown-et native duhet te ndjekin temen */
+select {
+  color-scheme: light dark;
+}
+
+.dark select option {
+  background-color: var(--card);
+  color: var(--foreground);
+}

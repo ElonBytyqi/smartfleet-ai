@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Drone } from "@/lib/types";
+
+import { useDrones } from "@/lib/queries";
 import { getApiError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,10 +68,7 @@ export function CreateMaintenanceDialog() {
     defaultValues: defaults,
   });
 
-  const { data: drones } = useQuery({
-    queryKey: ["drones"],
-    queryFn: async () => (await api.get<Drone[]>("/drones")).data,
-  });
+  const { data: drones } = useDrones();
 
   const mutation = useMutation({
     mutationFn: async (v: FormValues) =>

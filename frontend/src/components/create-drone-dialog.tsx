@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { DroneModel } from "@/lib/types";
+
+import { useDroneModels } from "@/lib/queries";
+
 import { getApiError } from "@/lib/errors";
 import { qk } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
@@ -65,10 +67,8 @@ export function CreateDroneDialog() {
     defaultValues: defaults,
   });
 
-  const { data: models } = useQuery({
-    queryKey: qk.droneModels,
-    queryFn: async () => (await api.get<DroneModel[]>("/drone-models")).data,
-  });
+  // Droni ka nevoje per modelet, jo per dronet e tjere
+const { data: models } = useDroneModels();
 
   const mutation = useMutation({
     mutationFn: async (v: FormValues) =>
@@ -146,7 +146,7 @@ export function CreateDroneDialog() {
               <SelectTrigger aria-invalid={!!errors.droneModelId}>
                 <SelectValue placeholder="Zgjidh modelin" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[9999]">
                 {models?.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
                     {m.manufacturerName} {m.modelName}

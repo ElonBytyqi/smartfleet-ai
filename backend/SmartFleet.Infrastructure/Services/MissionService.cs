@@ -36,9 +36,15 @@ namespace SmartFleet.Infrastructure.Services
         // Nese s'ka fund te planifikuar, supozojme 1 ore
         private static DateTime EffectiveEnd(DateTime start, DateTime? end) => end ?? start.AddHours(1);
 
-        public async Task<List<MissionResponse>> GetAllAsync(
-            string? status = null, Guid? droneId = null, Guid? pilotId = null)
+        public async Task<PagedResult<MissionResponse>> GetAllAsync(
+       string? status = null,
+       Guid? droneId = null,
+       Guid? pilotId = null,
+       string? search = null,
+       PageRequest? paging = null)
         {
+            paging ??= new PageRequest();
+
             var query = _dbContext.Missions.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status) &&
@@ -47,6 +53,15 @@ namespace SmartFleet.Infrastructure.Services
 
             if (droneId.HasValue) query = query.Where(m => m.DroneId == droneId.Value);
             if (pilotId.HasValue) query = query.Where(m => m.PilotId == pilotId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(m =>
+                    m.Title.ToLower().Contains(term) ||
+                    m.FlightZone.Name.ToLower().Contains(term) ||
+                    (m.Drone != null && m.Drone.SerialNumber.ToLower().Contains(term)));
+            }
 
             return await query
                 .OrderByDescending(m => m.ScheduledStart)
@@ -69,7 +84,7 @@ namespace SmartFleet.Infrastructure.Services
                     m.ActualStart,
                     m.ActualEnd,
                     m.Waypoints.Count))
-                .ToListAsync();
+                .ToPagedResultAsync(paging);
         }
 
         private static double DistanceMeters(double lat1, double lon1, double lat2, double lon2)

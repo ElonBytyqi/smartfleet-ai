@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
 using static SmartFleet.Application.DTOs.BatteryDtos;
 
@@ -20,8 +21,22 @@ namespace SmartFleet.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] Guid? droneId)
-            => Ok(await _service.GetAllAsync(droneId));
+        public async Task<IActionResult> GetAll(
+       [FromQuery] Guid? droneId,
+       [FromQuery] string? status,
+       [FromQuery] string? search,
+       [FromQuery] PageRequest paging)
+       => Ok(await _service.GetAllAsync(droneId, status, search, paging));
+
+        /// <summary>Listë e plotë pa paginim — për dropdown-e.</summary>
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllSimple([FromQuery] Guid? droneId)
+        {
+            var result = await _service.GetAllAsync(
+                droneId: droneId,
+                paging: new PageRequest { PageSize = 200 });
+            return Ok(result.Items);
+        }
 
         [HttpGet("needing-inspection")]
         [Authorize(Roles = "Admin,FleetManager,MaintenanceTechnician")]

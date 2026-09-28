@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { FlightZone } from "@/lib/types";
+import { useFlightZones } from "@/lib/queries";
+
 import { getApiError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,10 +83,7 @@ export function CreateMissionDialog() {
     defaultValues: defaults,
   });
 
-  const { data: zones } = useQuery({
-    queryKey: ["flight-zones"],
-    queryFn: async () => (await api.get<FlightZone[]>("/flight-zones")).data,
-  });
+const { data: zones } = useFlightZones();
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) =>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Route } from "lucide-react";
-import { useMissions, useMissionAction } from "@/lib/queries";
+import { useMissionsPaged, useMissionAction, type MissionFilter } from "@/lib/queries";
 import { MissionStatus, TYPE_LABELS } from "@/lib/constants";
 import { getApiError } from "@/lib/errors";
 import { StatusBadge } from "@/components/status-badge";
@@ -13,6 +13,8 @@ import { FilterBar } from "@/components/filter-bar";
 import { ListCard } from "@/components/list-card";
 import { ErrorBanner } from "@/components/error-banner";
 import { ActionButton } from "@/components/action-button";
+import { Pagination } from "@/components/pagination";
+import { SearchInput } from "@/components/search-input";
 
 const filters = [
   { key: "all", label: "Të gjitha" },
@@ -22,29 +24,44 @@ const filters = [
   { key: MissionStatus.Completed, label: "Të përfunduara" },
 ];
 
-
-const actions: Record<string, { label: string; path: string; tone: "primary" | "danger" }[]> = {
- [MissionStatus.Planned]: [
+const actions: Record<
+  string,
+  { label: string; path: string; tone: "primary" | "danger" }[]
+> = {
+  [MissionStatus.Planned]: [
     { label: "Aprovo", path: "approve", tone: "primary" },
     { label: "Anulo", path: "cancel", tone: "danger" },
   ],
+
   [MissionStatus.Approved]: [
     { label: "Nis", path: "start", tone: "primary" },
     { label: "Anulo", path: "cancel", tone: "danger" },
   ],
+
   [MissionStatus.InProgress]: [
     { label: "Përfundo", path: "complete", tone: "primary" },
     { label: "Ndërprit", path: "abort", tone: "danger" },
   ],
 };
 
-
 export default function MissionsPage() {
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<MissionFilter>({ page: 1, pageSize: 25 });
+  const [statusKey, setStatusKey] = useState("all");
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading } = useMissions();
+  const { data, isLoading } = useMissionsPaged(filter);
   const action = useMissionAction();
+
+  const missions = data?.items ?? [];
+
+  function changeStatus(key: string) {
+    setStatusKey(key);
+    setFilter((prev) => ({
+      ...prev,
+      status: key === "all" ? undefined : key,
+      page: 1,
+    }));
+  }
 
   function run(id: string, path: string) {
     setError(null);
@@ -54,26 +71,34 @@ export default function MissionsPage() {
     );
   }
 
-  const visible =
-    filter === "all" ? data : data?.filter((m) => m.status === filter);
-
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Misionet" count={data?.length ?? 0}>
+      <PageHeader title="Misionet" count={data?.totalCount ?? 0}>
+        <SearchInput
+          value={filter.search ?? ""}
+          onChange={(v) =>
+            setFilter((prev) => ({ ...prev, search: v || undefined, page: 1 }))
+          }
+          placeholder="Kërko mision..."
+        />
         <CreateMissionDialog />
       </PageHeader>
 
-      <FilterBar options={filters} value={filter} onChange={setFilter} />
+      <FilterBar options={filters} value={statusKey} onChange={changeStatus} />
 
       <ErrorBanner message={error} />
 
       <ListCard
         isLoading={isLoading}
-        isEmpty={visible?.length === 0}
+        isEmpty={missions.length === 0}
         emptyIcon={Route}
-        emptyText="Nuk ka misione në këtë kategori."
+        emptyText={
+          filter.search
+            ? "Asnjë mision nuk përputhet me kërkimin."
+            : "Nuk ka misione në këtë kategori."
+        }
       >
-        {visible?.map((m) => (
+        {missions.map((m) => (
           <div
             key={m.id}
             className="flex items-center gap-5 px-6 py-4 transition-colors hover:bg-muted/40"
@@ -136,6 +161,20 @@ export default function MissionsPage() {
           </div>
         ))}
       </ListCard>
+
+      {data && (
+        <Pagination
+          page={data.page}
+          totalPages={data.totalPages}
+          totalCount={data.totalCount}
+          pageSize={data.pageSize}
+          onPageChange={(p) => setFilter((prev) => ({ ...prev, page: p }))}
+          onPageSizeChange={(s) =>
+            setFilter((prev) => ({ ...prev, pageSize: s, page: 1 }))
+          }
+          itemLabel="misione"
+        />
+      )}
     </div>
   );
 }

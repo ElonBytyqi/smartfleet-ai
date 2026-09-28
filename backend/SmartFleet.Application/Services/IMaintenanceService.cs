@@ -4,8 +4,11 @@ namespace SmartFleet.Application.Services;
 
 public interface IMaintenanceService
 {
-    Task<List<MaintenanceResponse>> GetAllAsync(Guid? droneId = null, string? status = null);
-    Task<MaintenanceResponse?> GetByIdAsync(Guid id);
+    Task<PagedResult<MaintenanceResponse>> GetAllAsync(
+        Guid? droneId = null,
+        string? status = null,
+        string? search = null,
+        PageRequest? paging = null); Task<MaintenanceResponse?> GetByIdAsync(Guid id);
     Task<List<MaintenanceResponse>> GetUpcomingAsync(int days = 30);
 
     Task<(bool Success, string? Error, Guid? Id)> CreateAsync(CreateMaintenanceRequest request, Guid technicianId);

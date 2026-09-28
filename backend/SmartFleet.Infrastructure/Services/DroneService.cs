@@ -17,15 +17,35 @@ namespace SmartFleet.Application.DTOs
         {
             _dbContext = dbContext;
         }
-        public async Task<List<DroneResponse>> GetAllAsync()
+        public async Task<PagedResult<DroneResponse>> GetAllAsync(
+     string? status = null,
+     string? search = null,
+     PageRequest? paging = null)
         {
-            return await _dbContext.Drones
-                .Include(d => d.DroneModel)
+            paging ??= new PageRequest();
+
+            var query = _dbContext.Drones.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(status) &&
+                Enum.TryParse<DroneStatus>(status, true, out var parsed))
+                query = query.Where(d => d.Status == parsed);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(d =>
+                    d.SerialNumber.ToLower().Contains(term) ||
+                    (d.Nickname != null && d.Nickname.ToLower().Contains(term)) ||
+                    d.DroneModel.ModelName.ToLower().Contains(term));
+            }
+
+            return await query
+                .OrderBy(d => d.SerialNumber)
                 .Select(d => new DroneResponse(
                     d.Id, d.SerialNumber, d.Nickname, d.Status.ToString(),
-                    d.TotalFlightHours, d.PurchaseDate, d.DroneModelId, d.DroneModel.ModelName))
-                .ToListAsync();
-
+                    d.TotalFlightHours, d.PurchaseDate, d.DroneModelId,
+                    d.DroneModel.ModelName))
+                .ToPagedResultAsync(paging);
         }
 
 

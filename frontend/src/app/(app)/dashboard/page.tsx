@@ -1,25 +1,17 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { Drone, Mission } from "@/lib/types";
+
 import { StatusBadge } from "@/components/status-badge";
 import { ZuluClock } from "@/components/zulu-clock";
 import { AttentionPanel } from "@/components/attention-panel";
 import { MissionChart } from "@/components/mission-chart";
 import { BatteryHealth } from "@/components/battery-health";
 import { Route, AlertTriangle } from "lucide-react";
+import { useDrones,useMissions } from "@/lib/queries";
 
 export default function DashboardPage() {
-  const { data: drones } = useQuery({
-    queryKey: ["drones"],
-    queryFn: async () => (await api.get<Drone[]>("/drones")).data,
-  });
-
-  const { data: missions } = useQuery({
-    queryKey: ["missions"],
-    queryFn: async () => (await api.get<Mission[]>("/missions")).data,
-  });
+   const { data: drones, isLoading: dronesLoading } = useDrones();
+  const { data: missions, isLoading: missionsLoading } = useMissions();
 
   const available = drones?.filter((d) => d.status === "Available").length ?? 0;
   const airborne = drones?.filter((d) => d.status === "InMission").length ?? 0;

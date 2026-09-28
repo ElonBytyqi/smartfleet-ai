@@ -2,13 +2,10 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { Drone, Battery, Mission } from "@/lib/types";
+import { ArrowLeft, BatteryMedium, Route, Plane, Cpu } from "lucide-react";
+import { useDrone, useBatteries, useMissions } from "@/lib/queries";
 import { StatusBadge } from "@/components/status-badge";
-import { ArrowLeft, BatteryMedium, Route, Plane } from "lucide-react";
 import { DroneComponentsPanel } from "@/components/drone-components-panel";
-import { Cpu } from "lucide-react";
 
 export default function DroneDetailPage({
   params,
@@ -17,22 +14,9 @@ export default function DroneDetailPage({
 }) {
   const { id } = use(params);
 
-  const { data: drone } = useQuery({
-    queryKey: ["drone", id],
-    queryFn: async () => (await api.get<Drone>(`/drones/${id}`)).data,
-  });
-
-  const { data: batteries } = useQuery({
-    queryKey: ["batteries", "drone", id],
-    queryFn: async () =>
-      (await api.get<Battery[]>(`/batteries?droneId=${id}`)).data,
-  });
-
-  const { data: missions } = useQuery({
-    queryKey: ["missions", "drone", id],
-    queryFn: async () =>
-      (await api.get<Mission[]>(`/missions?droneId=${id}`)).data,
-  });
+  const { data: drone } = useDrone(id);
+  const { data: batteries } = useBatteries(id);
+  const { data: missions } = useMissions(id);
 
   if (!drone) {
     return (
@@ -44,9 +28,10 @@ export default function DroneDetailPage({
 
   const completed = missions?.filter((m) => m.status === "Completed").length ?? 0;
   const aborted = missions?.filter((m) => m.status === "Aborted").length ?? 0;
-  const upcoming = missions?.filter((m) =>
-    ["Planned", "Approved", "InProgress"].includes(m.status)
-  ).length ?? 0;
+  const upcoming =
+    missions?.filter((m) =>
+      ["Planned", "Approved", "InProgress"].includes(m.status)
+    ).length ?? 0;
 
   const stats = [
     { label: "Orë fluturimi", value: drone.totalFlightHours.toFixed(1) },
@@ -130,11 +115,9 @@ export default function DroneDetailPage({
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="font-mono text-[13px] tabular-nums">
-                        {b.healthPercentage.toFixed(0)}%
-                      </p>
-                    </div>
+                    <p className="font-mono text-[13px] tabular-nums">
+                      {b.healthPercentage.toFixed(0)}%
+                    </p>
                     <StatusBadge status={b.status} />
                   </div>
                 </div>
@@ -154,10 +137,7 @@ export default function DroneDetailPage({
 
           {!missions || missions.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10">
-              <Plane
-                className="h-7 w-7 text-muted-foreground/40"
-                strokeWidth={1.5}
-              />
+              <Plane className="h-7 w-7 text-muted-foreground/40" strokeWidth={1.5} />
               <p className="text-[13px] text-muted-foreground">
                 Ky dron s&apos;ka fluturuar ende.
               </p>
@@ -182,18 +162,16 @@ export default function DroneDetailPage({
             </div>
           )}
         </section>
+      </div>
 
-              <section className="rounded-lg border bg-card p-6">
+      {/* Komponentët — rresht i vet, jashte grid-it */}
+      <section className="rounded-lg border bg-card p-6">
         <div className="mb-4 flex items-center gap-2">
           <Cpu className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
           <h2 className="font-heading text-sm font-semibold">Komponentët</h2>
         </div>
-        <DroneComponentsPanel
-          droneId={id}
-          droneHours={drone.totalFlightHours}
-        />
+        <DroneComponentsPanel droneId={id} droneHours={drone.totalFlightHours} />
       </section>
-      </div>
     </div>
   );
 }

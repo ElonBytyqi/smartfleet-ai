@@ -33,8 +33,14 @@ public class MaintenanceService : IMaintenanceService
         _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc)
     };
 
-    public async Task<List<MaintenanceResponse>> GetAllAsync(Guid? droneId = null, string? status = null)
+    public async Task<PagedResult<MaintenanceResponse>> GetAllAsync(
+     Guid? droneId = null,
+     string? status = null,
+     string? search = null,
+     PageRequest? paging = null)
     {
+        paging ??= new PageRequest();
+
         var query = _db.MaintenanceRecords.AsQueryable();
 
         if (droneId.HasValue)
@@ -44,8 +50,20 @@ public class MaintenanceService : IMaintenanceService
             Enum.TryParse<MaintenanceStatus>(status, true, out var parsed))
             query = query.Where(r => r.Status == parsed);
 
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(r =>
+                r.Description.ToLower().Contains(term) ||
+                r.Drone.SerialNumber.ToLower().Contains(term));
+        }
+
+        var total = await query.CountAsync();
+
         var records = await query
             .OrderByDescending(r => r.PerformedAt)
+            .Skip(paging.Skip)
+            .Take(paging.PageSize)
             .Select(r => new
             {
                 r.Id,
@@ -64,7 +82,12 @@ public class MaintenanceService : IMaintenanceService
             })
             .ToListAsync();
 
-        return await MapAsync(records);
+        var items = await MapAsync(records);
+        var page = Math.Max(1, paging.Page);
+
+        return new PagedResult<MaintenanceResponse>(
+            items, page, paging.PageSize, total,
+            (int)Math.Ceiling(total / (double)paging.PageSize));
     }
 
     public async Task<MaintenanceResponse?> GetByIdAsync(Guid id)

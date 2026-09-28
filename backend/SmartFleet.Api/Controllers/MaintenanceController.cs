@@ -23,8 +23,21 @@ public class MaintenanceController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] Guid? droneId, [FromQuery] string? status)
-        => Ok(await _service.GetAllAsync(droneId, status));
+     [FromQuery] Guid? droneId,
+     [FromQuery] string? status,
+     [FromQuery] string? search,
+     [FromQuery] PageRequest paging)
+     => Ok(await _service.GetAllAsync(droneId, status, search, paging));
+
+    /// <summary>Listë e plotë pa paginim — për faqen e dronit.</summary>
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllSimple([FromQuery] Guid? droneId)
+    {
+        var result = await _service.GetAllAsync(
+            droneId: droneId,
+            paging: new PageRequest { PageSize = 200 });
+        return Ok(result.Items);
+    }
 
     [HttpGet("upcoming")]
     [Authorize(Roles = "Admin,FleetManager,MaintenanceTechnician")]

@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { BatteryMedium } from "lucide-react";
 import {
-  useBatteries,
+  useBatteriesPaged,
   useDrones,
   useAssignBattery,
   useUpdateBatteryStatus,
+  type BatteryFilter,
 } from "@/lib/queries";
 import { BatteryStatus, THRESHOLDS } from "@/lib/constants";
 import { getApiError } from "@/lib/errors";
@@ -15,6 +16,8 @@ import { PageHeader } from "@/components/page-header";
 import { FilterBar } from "@/components/filter-bar";
 import { ListCard } from "@/components/list-card";
 import { ErrorBanner } from "@/components/error-banner";
+import { Pagination } from "@/components/pagination";
+import { SearchInput } from "@/components/search-input";
 import { CreateBatteryDialog } from "@/components/create-battery-dialog";
 import {
   Select,
@@ -47,17 +50,25 @@ function healthColor(h: number) {
 }
 
 export default function BatteriesPage() {
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<BatteryFilter>({ page: 1, pageSize: 25 });
+  const [statusKey, setStatusKey] = useState("all");
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading } = useBatteries();
+  const { data, isLoading } = useBatteriesPaged(filter);
   const { data: drones } = useDrones();
   const assign = useAssignBattery();
   const changeStatus = useUpdateBatteryStatus();
 
-  const batteries = data ?? [];
-  const visible =
-    filter === "all" ? batteries : batteries.filter((b) => b.status === filter);
+  const batteries = data?.items ?? [];
+
+  function changeFilter(key: string) {
+    setStatusKey(key);
+    setFilter((prev) => ({
+      ...prev,
+      status: key === "all" ? undefined : key,
+      page: 1,
+    }));
+  }
 
   const needsAttention = batteries.filter(
     (b) =>
@@ -67,26 +78,37 @@ export default function BatteriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-           <PageHeader title="Bateritë" count={batteries.length}>
+      <PageHeader title="Bateritë" count={data?.totalCount ?? 0}>
         {needsAttention > 0 && (
           <span className="text-[13px] text-[var(--status-caution)]">
             {needsAttention} kërkojnë vëmendje
           </span>
         )}
+        <SearchInput
+          value={filter.search ?? ""}
+          onChange={(v) =>
+            setFilter((prev) => ({ ...prev, search: v || undefined, page: 1 }))
+          }
+          placeholder="Kërko bateri..."
+        />
         <CreateBatteryDialog />
       </PageHeader>
 
-      <FilterBar options={filters} value={filter} onChange={setFilter} />
+      <FilterBar options={filters} value={statusKey} onChange={changeFilter} />
 
       <ErrorBanner message={error} />
 
       <ListCard
         isLoading={isLoading}
-        isEmpty={visible.length === 0}
+        isEmpty={batteries.length === 0}
         emptyIcon={BatteryMedium}
-        emptyText="Nuk ka bateri në këtë kategori."
+        emptyText={
+          filter.search
+            ? "Asnjë bateri nuk përputhet me kërkimin."
+            : "Nuk ka bateri në këtë kategori."
+        }
       >
-        {visible.map((b) => (
+        {batteries.map((b) => (
           <div key={b.id} className="flex items-center gap-6 px-6 py-4">
             <div className="w-48 shrink-0">
               <p className="font-mono text-[13px] font-medium">{b.serialNumber}</p>
@@ -128,7 +150,7 @@ export default function BatteriesPage() {
                 <SelectTrigger className="h-8 w-full max-w-52 text-[12px]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   <SelectItem value="none">Pa dron</SelectItem>
                   {drones?.map((d) => (
                     <SelectItem key={d.id} value={d.id}>
@@ -155,7 +177,7 @@ export default function BatteriesPage() {
                 <SelectTrigger className="h-8 w-36 text-[12px]">
                   <SelectValue placeholder="Ndrysho" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]">
                   {statusOptions.map((s) => (
                     <SelectItem key={s.value} value={s.value}>
                       {s.label}
@@ -167,6 +189,20 @@ export default function BatteriesPage() {
           </div>
         ))}
       </ListCard>
+
+      {data && (
+        <Pagination
+          page={data.page}
+          totalPages={data.totalPages}
+          totalCount={data.totalCount}
+          pageSize={data.pageSize}
+          onPageChange={(p) => setFilter((prev) => ({ ...prev, page: p }))}
+          onPageSizeChange={(s) =>
+            setFilter((prev) => ({ ...prev, pageSize: s, page: 1 }))
+          }
+          itemLabel="bateri"
+        />
+      )}
     </div>
   );
 }

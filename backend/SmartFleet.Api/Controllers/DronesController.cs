@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
+using SmartFleet.Infrastructure.Services;
 
 namespace SmartFleet.Api.Controllers
 {
@@ -21,8 +22,19 @@ namespace SmartFleet.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
-            => Ok(await _droneService.GetAllAsync());
+        public async Task<IActionResult> GetAll(
+         [FromQuery] string? status,
+         [FromQuery] string? search,
+         [FromQuery] PageRequest paging)
+         => Ok(await _droneService.GetAllAsync(status, search, paging));
+
+        /// <summary>Listë e plotë pa paginim — për dropdown-e.</summary>
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllSimple()
+        {
+            var result = await _droneService.GetAllAsync(paging: new PageRequest { PageSize = 200 });
+            return Ok(result.Items);
+        }
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)

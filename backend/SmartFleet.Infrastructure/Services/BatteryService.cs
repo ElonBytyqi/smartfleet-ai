@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
 using SmartFleet.Domain.Entites;
 using SmartFleet.Infrastructure.Persistence;
@@ -18,27 +19,45 @@ namespace SmartFleet.Infrastructure.Services
         {
             _dbContext = dbContext;
         }
-        public async Task<List<BatteryResponse>> GetAllAsync(Guid? droneId = null)
+        public async Task<PagedResult<BatteryResponse>> GetAllAsync(
+ Guid? droneId = null,
+ string? status = null,
+ string? search = null,
+ PageRequest? paging = null)
         {
+            paging ??= new PageRequest();
+
             var query = _dbContext.Batteries.AsQueryable();
 
             if (droneId.HasValue)
                 query = query.Where(b => b.DroneId == droneId.Value);
 
+            if (!string.IsNullOrWhiteSpace(status) &&
+                Enum.TryParse<BatteryStatus>(status, true, out var parsed))
+                query = query.Where(b => b.Status == parsed);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(b =>
+                    b.SerialNumber.ToLower().Contains(term) ||
+                    (b.Drone != null && b.Drone.SerialNumber.ToLower().Contains(term)));
+            }
+
             return await query
-                .OrderBy(b => b.SerialNumber)
-                .Select(b => new BatteryResponse(
-                    b.Id,
-                    b.SerialNumber,
-                    b.CapacityMah,
-                    b.CycleCount,
-                    b.HealthPercentage,
-                    b.Status.ToString(),
-                    b.DroneId,
-                    b.Drone != null ? b.Drone.SerialNumber : null,
-                    b.PurchaseDate,
-                    b.LastInspectionDate))
-                .ToListAsync();
+            .OrderBy(b => b.SerialNumber)
+            .Select(b => new BatteryResponse(
+                b.Id,
+                b.SerialNumber,
+                b.CapacityMah,
+                b.CycleCount,
+                b.HealthPercentage,
+                b.Status.ToString(),
+                b.DroneId,
+                b.Drone != null ? b.Drone.SerialNumber : null,
+                b.PurchaseDate,
+                b.LastInspectionDate))
+            .ToPagedResultAsync(paging);
         }
 
         public async Task<BatteryResponse?> GetByIdAsync(Guid id)

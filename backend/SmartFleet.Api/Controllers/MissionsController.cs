@@ -24,11 +24,28 @@ namespace SmartFleet.Api.Controllers
         // Merr Id-ne e userit te loguar nga claims e JWT-se
         private Guid CurrentUserId =>
             Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
         [HttpGet]
         public async Task<IActionResult> GetAll(
-            [FromQuery] string? status, [FromQuery] Guid? droneId, [FromQuery] Guid? pilotId)
-            => Ok(await _service.GetAllAsync(status, droneId, pilotId));
+             [FromQuery] string? status,
+             [FromQuery] Guid? droneId,
+             [FromQuery] Guid? pilotId,
+             [FromQuery] string? search,
+             [FromQuery] PageRequest paging)
+             => Ok(await _service.GetAllAsync(status, droneId, pilotId, search, paging));
+
+        /// <summary>Listë e plotë pa paginim — për dashboard dhe dropdown-e.</summary>
+        /// <summary>Listë e plotë pa paginim — për dashboard, dropdown-e dhe faqen e dronit.</summary>
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllSimple(
+            [FromQuery] string? status,
+            [FromQuery] Guid? droneId)
+        {
+            var result = await _service.GetAllAsync(
+                status: status,
+                droneId: droneId,
+                paging: new PageRequest { PageSize = 200 });
+            return Ok(result.Items);
+        }
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)

@@ -2,24 +2,24 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import {
+  useMission,
+  useDrones,
+  useBatteries,
+  usePilots,
+  useFlightZones,
+  useWaypoints,
+  qk,
+} from "@/lib/queries";
+import { ConflictCheck } from "@/lib/types";
+import { getApiError } from "@/lib/errors";
 import { MissionMap } from "@/components/map/mission-map";
 import { WaypointEditor, type Row } from "@/components/waypoint-editor";
-
-
 import { MissionAnalysisPanel } from "@/components/mission-analysis-panel";
-import { Brain } from "lucide-react";
-import {
-  Mission,
-  Drone,
-  Battery,
-  Pilot,
-  Waypoint,
-  ConflictCheck,
-  FlightZone,
-} from "@/lib/types";
-import { getApiError } from "@/lib/errors";
+import { PreflightPanel } from "@/components/preflight-panel";
+import { FlightReportPanel } from "@/components/flight-report-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -30,12 +30,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ShieldCheck, MapPin } from "lucide-react";
-import { PreflightPanel } from "@/components/preflight-panel";
-import { FlightReportPanel } from "@/components/flight-report-panel";
-import { ClipboardCheck, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  ShieldCheck,
+  MapPin,
+  Brain,
+  ClipboardCheck,
+  FileText,
+} from "lucide-react";
 
-const actions: Record<string, { label: string; path: string; variant?: "outline" }[]> = {
+const actions: Record<
+  string,
+  { label: string; path: string; variant?: "outline" }[]
+> = {
   Planned: [
     { label: "Aprovo", path: "approve" },
     { label: "Anulo", path: "cancel", variant: "outline" },
@@ -67,36 +74,12 @@ export default function MissionDetailPage({
   const [rows, setRows] = useState<Row[]>([]);
   const [rowsKey, setRowsKey] = useState("");
 
-  const { data: mission } = useQuery({
-    queryKey: ["mission", id],
-    queryFn: async () => (await api.get<Mission>(`/missions/${id}`)).data,
-  });
-
-  const { data: drones } = useQuery({
-    queryKey: ["drones"],
-    queryFn: async () => (await api.get<Drone[]>("/drones")).data,
-  });
-
-  const { data: batteries } = useQuery({
-    queryKey: ["batteries"],
-    queryFn: async () => (await api.get<Battery[]>("/batteries")).data,
-  });
-
-  const { data: pilots } = useQuery({
-    queryKey: ["pilots"],
-    queryFn: async () => (await api.get<Pilot[]>("/pilots")).data,
-  });
-
-  const { data: zones } = useQuery({
-    queryKey: ["flight-zones"],
-    queryFn: async () => (await api.get<FlightZone[]>("/flight-zones")).data,
-  });
-
-  const { data: waypoints } = useQuery({
-    queryKey: ["waypoints", id],
-    queryFn: async () =>
-      (await api.get<Waypoint[]>(`/missions/${id}/waypoints`)).data,
-  });
+  const { data: mission } = useMission(id);
+  const { data: drones } = useDrones();
+  const { data: batteries } = useBatteries();
+  const { data: pilots } = usePilots();
+  const { data: zones } = useFlightZones();
+  const { data: waypoints } = useWaypoints(id);
 
   const assign = useMutation({
     mutationFn: async () =>
@@ -134,10 +117,10 @@ export default function MissionDetailPage({
   });
 
   function refresh() {
-    queryClient.invalidateQueries({ queryKey: ["mission", id] });
-    queryClient.invalidateQueries({ queryKey: ["missions"] });
-    queryClient.invalidateQueries({ queryKey: ["drones"] });
-    queryClient.invalidateQueries({ queryKey: ["batteries"] });
+    queryClient.invalidateQueries({ queryKey: qk.mission(id) });
+    queryClient.invalidateQueries({ queryKey: qk.missions });
+    queryClient.invalidateQueries({ queryKey: qk.drones });
+    queryClient.invalidateQueries({ queryKey: qk.batteries });
   }
 
   // Sinkronizim i rreshtave kur vijne waypoints te reja
@@ -181,7 +164,8 @@ export default function MissionDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="border-b bg-card px-6 py-4">
+      {/* Header */}
+      <header className="rounded-lg border bg-card px-6 py-4">
         <Link
           href="/missions"
           className="mb-3 inline-flex items-center gap-1.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
@@ -217,14 +201,14 @@ export default function MissionDetailPage({
       </header>
 
       {error && (
-        <div className="border-b border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-6 py-2.5">
+        <div className="rounded-lg border border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-6 py-3">
           <p className="text-[13px] text-[var(--status-warning)]">{error}</p>
         </div>
       )}
 
-      <div className="grid flex-1 gap-px bg-border lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Burimet */}
-        <section className="bg-card p-6">
+        <section className="rounded-lg border bg-card p-6">
           <h2 className="mb-4 font-heading text-sm font-semibold">Burimet</h2>
 
           {editable ? (
@@ -235,7 +219,7 @@ export default function MissionDetailPage({
                   <SelectTrigger>
                     <SelectValue placeholder="Zgjidh dronin" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     {drones?.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
                         {d.serialNumber} · {d.status}
@@ -251,7 +235,7 @@ export default function MissionDetailPage({
                   <SelectTrigger>
                     <SelectValue placeholder="Zgjidh baterinë" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     {batteries?.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
                         {b.serialNumber} · {b.healthPercentage.toFixed(0)}%
@@ -272,7 +256,7 @@ export default function MissionDetailPage({
                   <SelectTrigger>
                     <SelectValue placeholder="Pa pilot" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     {pilots?.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.fullName ?? p.licenseNumber ?? "Pilot"}
@@ -345,7 +329,7 @@ export default function MissionDetailPage({
         </section>
 
         {/* Rruga */}
-        <section className="flex flex-col bg-card">
+        <section className="flex flex-col overflow-hidden rounded-lg border bg-card">
           <div className="flex items-center justify-between border-b px-6 py-3">
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
@@ -399,21 +383,20 @@ export default function MissionDetailPage({
           </div>
         </section>
       </div>
-      {/* Checklist / Raport */}
+
+      {/* Checklist dhe raporti */}
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-lg border bg-card p-6">
           <div className="mb-4 flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+            <ClipboardCheck
+              className="h-4 w-4 text-muted-foreground"
+              strokeWidth={1.75}
+            />
             <h2 className="font-heading text-sm font-semibold">
               Kontrolli para fluturimit
             </h2>
           </div>
-          <PreflightPanel
-            missionId={id}
-            editable={
-              mission.status === "Planned" || mission.status === "Approved"
-            }
-          />
+          <PreflightPanel missionId={id} editable={waypointsEditable} />
         </section>
 
         {["Completed", "Aborted"].includes(mission.status) && (
@@ -427,9 +410,10 @@ export default function MissionDetailPage({
             <FlightReportPanel missionId={id} />
           </section>
         )}
+      </div>
 
-
-              {["Completed", "Aborted", "InProgress"].includes(mission.status) && (
+      {/* Analiza e telemetrisë — rresht i vet */}
+      {["Completed", "Aborted", "InProgress"].includes(mission.status) && (
         <section className="rounded-lg border bg-card p-6">
           <div className="mb-4 flex items-center gap-2">
             <Brain className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
@@ -440,7 +424,6 @@ export default function MissionDetailPage({
           <MissionAnalysisPanel missionId={id} />
         </section>
       )}
-      </div>
     </div>
   );
 }
