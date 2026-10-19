@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Bell, AlertTriangle, Info, OctagonAlert } from "lucide-react";
 import {
   useAlertsPaged,
@@ -22,6 +21,7 @@ const statusFilters = [
   { key: "Resolved", label: "Të zgjidhura" },
   { key: "all", label: "Të gjitha" },
 ];
+
 
 const SEVERITY = {
   Critical: { label: "Kritik", color: "var(--status-warning)", icon: OctagonAlert },
@@ -49,6 +49,8 @@ export default function AlertsPage() {
   const [status, setStatus] = useState("Active");
   const [severity, setSeverity] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+
 
   const { data, isLoading } = useAlertsPaged({
     page,
