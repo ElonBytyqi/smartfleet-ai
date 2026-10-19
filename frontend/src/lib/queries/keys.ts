@@ -23,4 +23,5 @@ export const qk = {
   users: ["users"] as const,
   roles: ["roles"] as const,
   liveFleet: ["live-fleet"] as const,
+  alerts: ["alerts"] as const,
 };

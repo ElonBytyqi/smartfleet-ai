@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
+using SmartFleet.Domain.Entities;
 using SmartFleet.Infrastructure.Persistence;
 using SmartFleet.Infrastructure.Telemetry;
 
@@ -13,6 +14,7 @@ public class TelemetryService : ITelemetryService
     private readonly ILiveStateService _live;
     private readonly ApplicationDbContext _db;
     private readonly ITelemetryBroadcaster _broadcaster;
+    private readonly IAlertService _alerts;
 
     // Pragjet per alarmet
     private const double LowBattery = 25;
@@ -29,12 +31,14 @@ public class TelemetryService : ITelemetryService
         TelemetryDbContext mongo,
         ILiveStateService live,
         ApplicationDbContext db,
-        ITelemetryBroadcaster broadcaster)
+        ITelemetryBroadcaster broadcaster,
+        IAlertService alerts)
     {
         _mongo = mongo;
         _live = live;
         _db = db;
         _broadcaster = broadcaster;
+        _alerts = alerts;
     }
 
     // ===== Gjeometria =====
@@ -202,6 +206,10 @@ public class TelemetryService : ITelemetryService
         // Historia ne Mongo, gjendja e fundit ne Redis
         await _mongo.TelemetryPoints.InsertOneAsync(point);
         await _live.SetLastPositionAsync(request.DroneId, point);
+
+
+        await RaiseAlertsAsync(point);        // <-- rreshti i ri
+
 
         // Transmeto te klientet e lidhur
         var live = await GetLiveDroneAsync(request.DroneId);
@@ -398,4 +406,48 @@ public class TelemetryService : ITelemetryService
         p.SatelliteCount, p.SignalStrength,
         p.TemperatureCelsius, p.VibrationLevel,
         p.FlightMode, p.IsArmed);
+
+
+
+    // ===== Ngritja e alarmeve =====
+
+    private async Task RaiseAlertsAsync(TelemetryPoint p)
+    {
+        if (p.BatteryPercentage <= CriticalBattery)
+            await RaiseAsync(p, "CriticalBattery", AlertSeverity.Critical,
+                $"Bateri kritike: {p.BatteryPercentage:F0}%");
+        else if (p.BatteryPercentage <= LowBattery)
+            await RaiseAsync(p, "LowBattery", AlertSeverity.Warning,
+                $"Bateri e ulët: {p.BatteryPercentage:F0}%");
+
+        if (p.SatelliteCount < MinSatellites && p.IsArmed)
+            await RaiseAsync(p, "GpsWeak", AlertSeverity.Warning,
+                $"Sinjal GPS i dobët: {p.SatelliteCount} satelitë");
+
+        if (p.AltitudeMeters > MaxAltitude)
+            await RaiseAsync(p, "AltitudeExceeded", AlertSeverity.Warning,
+                $"Lartësi mbi kufi: {p.AltitudeMeters:F0} m");
+
+        if (p.VibrationLevel is > HighVibration)
+            await RaiseAsync(p, "HighVibration", AlertSeverity.Warning,
+                $"Dridhje të larta: {p.VibrationLevel:F0}");
+
+        var geofence = await CheckGeofenceAsync(p);
+        if (geofence != null)
+            await RaiseAsync(p, "GeofenceBreach", AlertSeverity.Critical, geofence);
+    }
+
+    // Çelësi mban dron + lloj, që i njëjti kusht të mos krijojë alarm të ri çdo sekondë
+    private Task RaiseAsync(
+        TelemetryPoint p, string type, AlertSeverity severity, string message)
+        => _alerts.RaiseAsync(new RaiseAlertRequest(
+            AlertType: type,
+            Severity: severity,
+            Message: message,
+            DeduplicationKey: $"{p.DroneId}:{type}",
+            Details: $"lat {p.Latitude:F5}, lng {p.Longitude:F5}, alt {p.AltitudeMeters:F0} m",
+            DroneId: p.DroneId,
+            MissionId: p.MissionId,
+            BatteryId: null,
+            PilotId: null));
 }

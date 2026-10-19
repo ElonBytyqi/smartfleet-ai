@@ -316,6 +316,89 @@ namespace SmartFleet.Infrastructure.Migrations
                     b.ToTable("DroneModels");
                 });
 
+            modelBuilder.Entity("SmartFleet.Domain.Entities.Alert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AcknowledgedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AlertType")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid?>("BatteryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeduplicationKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("DroneId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("MissionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("OccurrenceCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("PilotId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatteryId");
+
+                    b.HasIndex("DeduplicationKey");
+
+                    b.HasIndex("DroneId");
+
+                    b.HasIndex("MissionId");
+
+                    b.HasIndex("PilotId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("Alerts");
+                });
+
             modelBuilder.Entity("SmartFleet.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -906,6 +989,37 @@ namespace SmartFleet.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Drone");
+                });
+
+            modelBuilder.Entity("SmartFleet.Domain.Entities.Alert", b =>
+                {
+                    b.HasOne("SmartFleet.Domain.Entites.Battery", "Battery")
+                        .WithMany()
+                        .HasForeignKey("BatteryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SmartFleet.Domain.Entites.Drone", "Drone")
+                        .WithMany()
+                        .HasForeignKey("DroneId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SmartFleet.Domain.Entities.Mission", "Mission")
+                        .WithMany()
+                        .HasForeignKey("MissionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SmartFleet.Domain.Entities.Pilot", "Pilot")
+                        .WithMany()
+                        .HasForeignKey("PilotId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Battery");
+
+                    b.Navigation("Drone");
+
+                    b.Navigation("Mission");
+
+                    b.Navigation("Pilot");
                 });
 
             modelBuilder.Entity("SmartFleet.Domain.Entities.Certification", b =>

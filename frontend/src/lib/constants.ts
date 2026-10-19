@@ -205,3 +205,16 @@ export const FIELD_LABELS: Record<string, string> = {
   ComponentType: "Tipi i komponentit",
   ExpectedLifespanHours: "Jetëgjatësia",
 };
+
+
+export const ALERT_SEVERITY: Record<string, { label: string; color: string }> = {
+  Info:     { label: "Info",     color: "bg-sky-500/15 text-sky-400 border-sky-500/30" },
+  Warning:  { label: "Warning",  color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  Critical: { label: "Critical", color: "bg-red-500/15 text-red-400 border-red-500/30" },
+};
+
+export const ALERT_STATUS: Record<string, { label: string; color: string }> = {
+  Active:       { label: "Active",       color: "bg-red-500/15 text-red-400 border-red-500/30" },
+  Acknowledged: { label: "Acknowledged", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  Resolved:     { label: "Resolved",     color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+};

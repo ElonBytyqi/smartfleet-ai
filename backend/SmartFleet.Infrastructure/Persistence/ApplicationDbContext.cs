@@ -30,6 +30,7 @@ namespace SmartFleet.Infrastructure.Persistence
         public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<Alert> Alerts => Set<Alert>();
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -88,6 +89,39 @@ namespace SmartFleet.Infrastructure.Persistence
             builder.Entity<Drone>().HasIndex(d => d.SerialNumber).IsUnique();
             builder.Entity<Battery>().HasIndex(b => b.SerialNumber).IsUnique();
             builder.Entity<Pilot>().HasIndex(p => p.LicenseNumber).IsUnique();
+
+
+            builder.Entity<Alert>(entity =>
+            {
+                entity.Property(a => a.AlertType).HasMaxLength(60).IsRequired();
+                entity.Property(a => a.Message).HasMaxLength(500).IsRequired();
+                entity.Property(a => a.DeduplicationKey).HasMaxLength(200).IsRequired();
+
+                // Kerkimi i alarmeve aktive duhet te jete i shpejte
+                entity.HasIndex(a => new { a.Status, a.CreatedAt });
+                entity.HasIndex(a => a.DeduplicationKey);
+                entity.HasIndex(a => a.DroneId);
+
+                entity.HasOne(a => a.Drone)
+                    .WithMany()
+                    .HasForeignKey(a => a.DroneId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(a => a.Mission)
+                    .WithMany()
+                    .HasForeignKey(a => a.MissionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(a => a.Battery)
+                    .WithMany()
+                    .HasForeignKey(a => a.BatteryId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(a => a.Pilot)
+                    .WithMany()
+                    .HasForeignKey(a => a.PilotId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
         }
 
     }

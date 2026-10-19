@@ -62,7 +62,8 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITelemetryService, TelemetryService>();
 builder.Services.AddHttpClient<IAiService, AiService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
-
+builder.Services.AddScoped<IAlertService, AlertService>();
+builder.Services.AddHostedService<AlertCleanupService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ITelemetryBroadcaster, TelemetryBroadcaster>();

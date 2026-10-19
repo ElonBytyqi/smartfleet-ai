@@ -10,3 +10,4 @@ export * from "./components";
 export * from "./telemetry";
 export * from "./ai";
 export * from "./audit";
+export * from "./alerts";

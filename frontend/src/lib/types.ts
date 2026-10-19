@@ -292,3 +292,32 @@ export interface PagedResult<T> {
   totalCount: number;
   totalPages: number;
 }
+
+export interface PageRequest {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
+export interface Alert {
+  id: string;
+  droneId: string | null;
+  droneSerialNumber: string | null;
+  missionId: string | null;
+  alertType: string;
+  message: string;
+  severity: string;
+  status: string;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: string | null;
+  occurrenceCount: number;
+lastSeenAt: string | null;
+resolvedAt: string | null;
+}
+
+export interface AlertFilter extends PageRequest {
+  severity?: string;
+  status?: string;
+  droneId?: string;
+}

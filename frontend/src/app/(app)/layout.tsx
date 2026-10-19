@@ -20,6 +20,7 @@ import {
   Radio,
   Brain,
   History,
+  Bell
 } from "lucide-react";
 import { api, tokens } from "@/lib/api";
 import { Role, ROLE_LABELS } from "@/lib/constants";
@@ -96,19 +97,19 @@ const navItems = [
     endpoint: "/users",
     roles: [Role.Admin] as string[],
   },
-    {
+  {
     href: "/audit",
     label: "Regjistri",
     icon: History,
     endpoint: null,
     roles: [Role.Admin] as string[],
-  },
-  
+  }, { href: "/alerts", label: "Alerts", icon: Bell, roles: ["Admin", "FleetManager", "Operator"] },
+
 ];
 
 // localStorage nuk ekziston ne server — useSyncExternalStore lejon
 // vlere te ndryshme per server dhe klient pa hydration mismatch
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => { };
 
 function useStoredEmail(): string | null {
   return useSyncExternalStore(
@@ -148,13 +149,20 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [hydrated, email, router]);
 
   // Te dhenat fillojne te vijne sa lëvizet miu drejt lidhjes
-  function prefetch(key: string, endpoint: string | null) {
-    if (!endpoint) return;
-    queryClient.prefetchQuery({
-      queryKey: [key],
-      queryFn: async () => (await api.get(endpoint)).data,
-    });
-  }
+  // function prefetch(key: string, endpoint: string | null) {
+  //   if (!endpoint) return;
+  //   queryClient.prefetchQuery({
+  //     queryKey: [key],
+  //     queryFn: async () => (await api.get(endpoint)).data,
+  //   });
+  // }
+  function prefetch(key: string, endpoint?: string | null) {
+  if (!endpoint) return;
+  queryClient.prefetchQuery({
+    queryKey: [key],
+    queryFn: async () => (await api.get(endpoint)).data,
+  });
+}
 
   function logout() {
     tokens.clear();
@@ -189,15 +197,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 onMouseEnter={() =>
                   prefetch(item.href.replace("/", ""), item.endpoint)
                 }
-                className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition-colors ${
-                  active
-                    ? "bg-sidebar-accent text-white"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
-                }`}
+                className={`relative flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition-colors ${active
+                  ? "bg-sidebar-accent text-white"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
+                  }`}
               >
                 {/* Shenja e faqes aktive — magenta e hartave ajrore */}
                 {active && (
-                  <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-primary" />
+                  <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
                 )}
                 <Icon className="h-4 w-4" strokeWidth={1.75} />
                 {item.label}
@@ -242,7 +249,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1400px] p-8">{children}</div>
+        <div className="mx-auto max-w-350 p-8">{children}</div>
       </main>
     </div>
   );
