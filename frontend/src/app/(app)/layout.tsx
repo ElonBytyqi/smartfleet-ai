@@ -20,7 +20,9 @@ import {
   Radio,
   Brain,
   History,
-  Bell
+  Bell,
+  BarChart3,
+  
 } from "lucide-react";
 import { api, tokens } from "@/lib/api";
 import { Role, ROLE_LABELS } from "@/lib/constants";
@@ -105,6 +107,13 @@ const navItems = [
     endpoint: null,
     roles: [Role.Admin] as string[],
   }, { href: "/alerts", label: "Alerts", icon: Bell, roles: ["Admin", "FleetManager", "Operator"] },
+  {
+  href: "/reports",
+  label: "Raportet",
+  icon: BarChart3,
+  endpoint: null,
+  roles: [Role.Admin, Role.FleetManager, Role.Operator],
+},
 
 ];
 

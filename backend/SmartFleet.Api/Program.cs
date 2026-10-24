@@ -67,7 +67,13 @@ builder.Services.AddHostedService<AlertCleanupService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ITelemetryBroadcaster, TelemetryBroadcaster>();
+
+
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+builder.Services.AddScoped<IReportService, ReportService>();
+
 // ======================================
+
 // 2. JWT AUTHENTICATION
 // ======================================
 
