@@ -72,6 +72,9 @@ builder.Services.AddSingleton<ITelemetryBroadcaster, TelemetryBroadcaster>();
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 builder.Services.AddScoped<IReportService, ReportService>();
 
+
+builder.Services.AddScoped<ISettingsService, SettingsService>();
+
 // ======================================
 
 // 2. JWT AUTHENTICATION
@@ -202,6 +205,11 @@ using (var scope = app.Services.CreateScope())
     await DataSeeder.SeedRolesAsync(roleManager);
     await DataSeeder.SeedAdminUserAsync(userManager);
     await DataSeeder.SeedFleetAsync(dbContext, userManager);
+
+    await SettingsSeeder.SeedAsync(dbContext);        // mbush tabelën
+
+    var settings = scope.ServiceProvider.GetRequiredService<ISettingsService>();
+    await settings.WarmUpAsync();                     // pastaj cache-in
 }
 
 // ======================================

@@ -6,6 +6,7 @@ using SmartFleet.Domain.Entities;
 using SmartFleet.Infrastructure.Identity;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace SmartFleet.Infrastructure.Persistence
@@ -31,6 +32,7 @@ namespace SmartFleet.Infrastructure.Persistence
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<Alert> Alerts => Set<Alert>();
+        public DbSet<Setting> Settings => Set<Setting>();
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -79,6 +81,17 @@ namespace SmartFleet.Infrastructure.Persistence
                 .WithMany(d => d.Batteries)
                 .HasForeignKey(b => b.DroneId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+
+            builder.Entity<Setting>(e =>
+            {
+                e.HasIndex(s => s.Key).IsUnique();
+                e.Property(s => s.Key).HasMaxLength(100);
+                e.Property(s => s.Value).HasMaxLength(500);
+                e.Property(s => s.DefaultValue).HasMaxLength(500);
+                e.Property(s => s.Category).HasMaxLength(60);
+                e.Property(s => s.Label).HasMaxLength(200);
+            });
 
             builder.Entity<RefreshToken>()
     .HasIndex(rt => rt.Token)

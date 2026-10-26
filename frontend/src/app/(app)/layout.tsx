@@ -22,6 +22,7 @@ import {
   History,
   Bell,
   BarChart3,
+  SlidersHorizontal,
   
 } from "lucide-react";
 import { api, tokens } from "@/lib/api";
@@ -113,6 +114,13 @@ const navItems = [
   icon: BarChart3,
   endpoint: null,
   roles: [Role.Admin, Role.FleetManager, Role.Operator],
+},
+{
+  href: "/settings",
+  label: "Cilësimet",
+  icon: SlidersHorizontal,
+  endpoint: null,
+  roles: [Role.Admin, Role.FleetManager],
 },
 
 ];

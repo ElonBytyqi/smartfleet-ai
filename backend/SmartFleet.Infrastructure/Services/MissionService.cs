@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SmartFleet.Application;
 using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
 using SmartFleet.Domain.Entites;
@@ -13,17 +14,25 @@ namespace SmartFleet.Infrastructure.Services
     public class MissionService : IMissionService
     {
         private readonly ApplicationDbContext _dbContext;
-        private const double RouteConflictMeters = 100;
+
+        private readonly ISettingsService _settings;
+
+ 
 
         private static readonly string[] ValidTypes =
         {
             "Agriculture", "Infrastructure", "Energy", "Environmental", "Mapping"
         };
 
-        public MissionService(ApplicationDbContext dbContext)
+        public MissionService(ApplicationDbContext dbContext, ISettingsService settings)
         {
             _dbContext = dbContext;
+            _settings = settings;
         }
+        private double ConflictRadius => _settings.GetNumber(SettingKeys.ConflictRadius, 100);
+
+        private double MaxAltitude => _settings.GetNumber(SettingKeys.MaxAltitude, 500);
+
 
         // PostgreSQL timestamptz pranon vetem UTC — normalizojme cdo date qe vjen nga jashte
         private static DateTime ToUtc(DateTime dt) => dt.Kind switch
@@ -155,7 +164,7 @@ namespace SmartFleet.Infrastructure.Services
                         if (d < minDistance) minDistance = d;
                     }
 
-                if (minDistance < RouteConflictMeters)
+                if (minDistance < ConflictRadius)
                     conflicts.Add(
                         $"Rruga kalon {minDistance:F0} m nga misioni '{other.Title}' " +
                         $"({other.DroneSerial}) në të njëjtin orar.");
@@ -521,8 +530,8 @@ namespace SmartFleet.Infrastructure.Services
                     return (false, "Latitude must be between -90 and 90.");
                 if (w.Longitude < -180 || w.Longitude > 180)
                     return (false, "Longitude must be between -180 and 180.");
-                if (w.AltitudeMeters is < 0 or > 500)
-                    return (false, "Altitude must be between 0 and 500 meters.");
+                if (w.AltitudeMeters is < 0 || w.AltitudeMeters > (decimal)MaxAltitude)
+                    return (false, $"Altitude must be between 0 and {MaxAltitude:F0} meters.");
             }
 
             var existing = await _dbContext.MissionWaypoints.Where(w => w.MissionId == id).ToListAsync();

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
+using SmartFleet.Application;
 using SmartFleet.Application.DTOs;
 using SmartFleet.Application.Services;
 using SmartFleet.Domain.Entities;
@@ -15,30 +16,33 @@ public class TelemetryService : ITelemetryService
     private readonly ApplicationDbContext _db;
     private readonly ITelemetryBroadcaster _broadcaster;
     private readonly IAlertService _alerts;
+    private readonly ISettingsService _settings;
 
-    // Pragjet per alarmet
-    private const double LowBattery = 25;
-    private const double CriticalBattery = 15;
-    private const int MinSatellites = 6;
-    private const double MaxAltitude = 500;
-    private const double HighVibration = 60;
-
-    // Distanca minimale e sigurt mes droneve
-    private const double MinSeparationMeters = 60;
-    private const double MinVerticalSeparationMeters = 20;
+    // Pragjet vijne nga cilesimet; vlerat ketu jane rezerve nese celesi mungon
+    private double LowBattery => _settings.GetNumber(SettingKeys.BatteryLow, 25);
+    private double CriticalBattery => _settings.GetNumber(SettingKeys.BatteryCritical, 15);
+    private int MinSatellites => _settings.GetInt(SettingKeys.GpsMinSatellites, 6);
+    private double MaxAltitude => _settings.GetNumber(SettingKeys.MaxAltitude, 500);
+    private double HighVibration => _settings.GetNumber(SettingKeys.HighVibration, 60);
+    private double MaxTemperature => _settings.GetNumber(SettingKeys.MaxTemperature, 45);
+    private int SignalLostSeconds => _settings.GetInt(SettingKeys.SignalLostSeconds, 30);
+    private double SeparationHorizontal => _settings.GetNumber(SettingKeys.SeparationHorizontal, 60);
+    private double SeparationVertical => _settings.GetNumber(SettingKeys.SeparationVertical, 20);
 
     public TelemetryService(
         TelemetryDbContext mongo,
         ILiveStateService live,
         ApplicationDbContext db,
         ITelemetryBroadcaster broadcaster,
-        IAlertService alerts)
+        IAlertService alerts,
+        ISettingsService settings)
     {
         _mongo = mongo;
         _live = live;
         _db = db;
         _broadcaster = broadcaster;
         _alerts = alerts;
+        _settings = settings;
     }
 
     // ===== Gjeometria =====
@@ -128,15 +132,19 @@ public class TelemetryService : ITelemetryService
     }
 
     // Gjen dronet qe jane shume afer njeri-tjetrit
-    private static Dictionary<Guid, List<string>> DetectProximity(
+    private Dictionary<Guid, List<string>> DetectProximity(
         List<TelemetryPoint> points,
         Dictionary<Guid, string> serialNumbers)
     {
         var conflicts = new Dictionary<Guid, List<string>>();
 
+        var horizontalLimit = SeparationHorizontal;
+        var verticalLimit = SeparationVertical;
+
         // Vetem dronet aktive, me te dhena te freskëta
         var active = points
-            .Where(p => p.IsArmed && (DateTime.UtcNow - p.Timestamp).TotalSeconds < 30)
+            .Where(p => p.IsArmed &&
+                        (DateTime.UtcNow - p.Timestamp).TotalSeconds < SignalLostSeconds)
             .ToList();
 
         for (var i = 0; i < active.Count; i++)
@@ -149,10 +157,13 @@ public class TelemetryService : ITelemetryService
                 var horizontal = DistanceMeters(a.Latitude, a.Longitude, b.Latitude, b.Longitude);
                 var vertical = Math.Abs(a.AltitudeMeters - b.AltitudeMeters);
 
-                if (horizontal > MinSeparationMeters || vertical > MinVerticalSeparationMeters)
+                if (horizontal > horizontalLimit || vertical > verticalLimit)
                     continue;
 
-                var severity = horizontal < 25 ? "PËRPLASJE E MUNDSHME" : "Afërsi";
+                // Nen gjysmen e kufirit konsiderohet rrezik perplasjeje
+                var severity = horizontal < horizontalLimit / 2
+                    ? "PËRPLASJE E MUNDSHME"
+                    : "Afërsi";
 
                 var nameA = serialNumbers.GetValueOrDefault(a.DroneId, "dron tjetër");
                 var nameB = serialNumbers.GetValueOrDefault(b.DroneId, "dron tjetër");
@@ -207,9 +218,7 @@ public class TelemetryService : ITelemetryService
         await _mongo.TelemetryPoints.InsertOneAsync(point);
         await _live.SetLastPositionAsync(request.DroneId, point);
 
-
-        await RaiseAlertsAsync(point);        // <-- rreshti i ri
-
+        await RaiseAlertsAsync(point);
 
         // Transmeto te klientet e lidhur
         var live = await GetLiveDroneAsync(request.DroneId);
@@ -267,8 +276,7 @@ public class TelemetryService : ITelemetryService
                 p.Latitude, p.Longitude, p.AltitudeMeters,
                 p.GroundSpeedMs, p.HeadingDegrees,
                 p.BatteryPercentage, p.SatelliteCount,
-
-                               p.FlightMode, p.IsArmed,
+                p.FlightMode, p.IsArmed,
                 p.VerticalSpeedMs, p.BatteryVoltage, p.SignalStrength,
                 p.TemperatureCelsius, p.VibrationLevel,
                 BuildWarnings(p, geofence, nearby)));
@@ -316,10 +324,10 @@ public class TelemetryService : ITelemetryService
             p.Latitude, p.Longitude, p.AltitudeMeters,
             p.GroundSpeedMs, p.HeadingDegrees,
             p.BatteryPercentage, p.SatelliteCount,
-                           p.FlightMode, p.IsArmed,
-                p.VerticalSpeedMs, p.BatteryVoltage, p.SignalStrength,
-                p.TemperatureCelsius, p.VibrationLevel,
-                BuildWarnings(p, geofence, nearby));
+            p.FlightMode, p.IsArmed,
+            p.VerticalSpeedMs, p.BatteryVoltage, p.SignalStrength,
+            p.TemperatureCelsius, p.VibrationLevel,
+            BuildWarnings(p, geofence, nearby));
     }
 
     // ===== Historia =====
@@ -364,7 +372,7 @@ public class TelemetryService : ITelemetryService
     // ===== Alarmet =====
 
     // Alarmet llogariten ne çast, jo ruhen
-    private static List<string> BuildWarnings(
+    private List<string> BuildWarnings(
         TelemetryPoint p,
         string? geofenceWarning = null,
         List<string>? proximityWarnings = null)
@@ -389,10 +397,13 @@ public class TelemetryService : ITelemetryService
         if (p.AltitudeMeters > MaxAltitude)
             warnings.Add($"Lartësi mbi kufi: {p.AltitudeMeters:F0} m");
 
-        if (p.VibrationLevel is > HighVibration)
-            warnings.Add("Dridhje të larta");
+        if (p.VibrationLevel > HighVibration)
+            warnings.Add($"Dridhje të larta: {p.VibrationLevel:F0}");
 
-        if ((DateTime.UtcNow - p.Timestamp).TotalSeconds > 30)
+        if (p.TemperatureCelsius > MaxTemperature)
+            warnings.Add($"Temperaturë e lartë: {p.TemperatureCelsius:F0}°C");
+
+        if ((DateTime.UtcNow - p.Timestamp).TotalSeconds > SignalLostSeconds)
             warnings.Add("Sinjali i humbur");
 
         return warnings;
@@ -406,8 +417,6 @@ public class TelemetryService : ITelemetryService
         p.SatelliteCount, p.SignalStrength,
         p.TemperatureCelsius, p.VibrationLevel,
         p.FlightMode, p.IsArmed);
-
-
 
     // ===== Ngritja e alarmeve =====
 
@@ -428,9 +437,13 @@ public class TelemetryService : ITelemetryService
             await RaiseAsync(p, "AltitudeExceeded", AlertSeverity.Warning,
                 $"Lartësi mbi kufi: {p.AltitudeMeters:F0} m");
 
-        if (p.VibrationLevel is > HighVibration)
+        if (p.VibrationLevel > HighVibration)
             await RaiseAsync(p, "HighVibration", AlertSeverity.Warning,
                 $"Dridhje të larta: {p.VibrationLevel:F0}");
+
+        if (p.TemperatureCelsius > MaxTemperature)
+            await RaiseAsync(p, "HighTemperature", AlertSeverity.Warning,
+                $"Temperaturë e lartë: {p.TemperatureCelsius:F0}°C");
 
         var geofence = await CheckGeofenceAsync(p);
         if (geofence != null)
