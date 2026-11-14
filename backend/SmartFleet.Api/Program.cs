@@ -15,7 +15,29 @@ using SmartFleet.Infrastructure.Telemetry;
 using StackExchange.Redis;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+
+
+using Serilog;
+using Serilog.Events;
+
+// Logger fillestar — kap edhe gabimet gjatë nisjes, para se të lexohet konfigurimi
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+try
+{
+    Log.Information("SmartFleet po niset...");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    builder.Host.UseSerilog((context, services, config) => config
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext());
+
+
 
 // ======================================
 // 1. REGJISTRIMI I SHËRBIMEVE
@@ -123,27 +145,19 @@ builder.Services
             },
             OnAuthenticationFailed = context =>
             {
-                Console.WriteLine(
-                    $">>> JWT FAILED: " +
-                    $"{context.Exception.GetType().Name}: " +
-                    $"{context.Exception.Message}");
-
+                Log.Warning("Autentikimi JWT dështoi: {Reason}", context.Exception.Message);
                 return Task.CompletedTask;
             },
 
             OnChallenge = context =>
             {
-                Console.WriteLine(
-                    $">>> JWT CHALLENGE: " +
-                    $"{context.Error}, " +
-                    $"{context.ErrorDescription}");
-
+                Log.Debug("JWT challenge: {Error} {Description}",
+                    context.Error, context.ErrorDescription);
                 return Task.CompletedTask;
             }
         };
     });
 
-builder.Services.AddAuthorization();
 builder.Services.AddAuthorization();
 
 // ======================================
@@ -192,11 +206,32 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// ======================================
-// 5. SEED DATA
-// ======================================
 
-using (var scope = app.Services.CreateScope())
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate =
+            "{RequestMethod} {RequestPath} → {StatusCode} në {Elapsed:0} ms";
+
+        // Kërkesat e ngadalta dhe gabimet dalin si Warning
+        options.GetLevel = (http, elapsed, ex) =>
+            ex != null || http.Response.StatusCode >= 500 ? LogEventLevel.Error
+            : http.Response.StatusCode >= 400 ? LogEventLevel.Warning
+            : elapsed > 1000 ? LogEventLevel.Warning
+            : LogEventLevel.Information;
+
+        options.EnrichDiagnosticContext = (ctx, http) =>
+        {
+            ctx.Set("UserName", http.User.Identity?.Name ?? "anonim");
+            ctx.Set("ClientIp", http.Connection.RemoteIpAddress?.ToString() ?? "-");
+        };
+    });
+
+
+    // ======================================
+    // 5. SEED DATA
+    // ======================================
+
+    using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -229,5 +264,14 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "SmartFleet dështoi gjatë nisjes.");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
