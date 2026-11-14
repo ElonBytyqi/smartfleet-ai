@@ -4,6 +4,7 @@ using SmartFleet.Domain.Entites;
 using SmartFleet.Domain.Entities;
 using SmartFleet.Infrastructure.Identity;
 using SmartFleet.Infrastructure.Persistence;
+using Serilog;
 
 namespace SmartFleet.Infrastructure.Seed;
 
@@ -408,7 +409,7 @@ public static class DataSeeder
 
         await db.SaveChangesAsync();   // ← ky ruan gjithçka deri këtu
 
-        Console.WriteLine($">>> SEEDER: {drones.Count} dronë, {components.Count} komponentë, " +
+        Log.Information($">>> SEEDER: {drones.Count} dronë, {components.Count} komponentë, " +
                    $"{batteries.Count} bateri, {pilots.Count} pilotë, " +
                    $"{zones.Count} zona, {missions.Count} misione.");
     }

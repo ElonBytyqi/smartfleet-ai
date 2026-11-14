@@ -214,10 +214,11 @@ var app = builder.Build();
 
         // Kërkesat e ngadalta dhe gabimet dalin si Warning
         options.GetLevel = (http, elapsed, ex) =>
-            ex != null || http.Response.StatusCode >= 500 ? LogEventLevel.Error
-            : http.Response.StatusCode >= 400 ? LogEventLevel.Warning
-            : elapsed > 1000 ? LogEventLevel.Warning
-            : LogEventLevel.Information;
+        http.Request.Path.StartsWithSegments("/swagger") ? LogEventLevel.Verbose
+        : ex != null || http.Response.StatusCode >= 500 ? LogEventLevel.Error
+        : http.Response.StatusCode >= 400 ? LogEventLevel.Warning
+        : elapsed > 2500 ? LogEventLevel.Warning
+        : LogEventLevel.Information;
 
         options.EnrichDiagnosticContext = (ctx, http) =>
         {
